@@ -8,6 +8,15 @@ This website is built using [Docusaurus](https://docusaurus.io/), a modern stati
 yarn
 ```
 
+## OpenAPI Doc generation
+
+`reference - https://hackernoon.com/an-openapi-plugin-is-all-you-need-to-create-your-own-api-documentation`
+
+```bash
+yarn docusaurus gen-api-docs all
+```
+in `docusaurus.config.js` we have configured the `docs` as output directory in api-docs plugin and the path to the openapi spec yml file. If the spec changes then `combined-openapi.yml` file is updated and the above command is run to generate the files in the docs folder again. 
+
 ## Local Development
 
 ```bash
