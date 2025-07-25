@@ -10,7 +10,7 @@ import type * as OpenApiPlugin from "docusaurus-plugin-openapi-docs";
 const config: Config = {
   title: 'PuzzleMe API',
   tagline: 'Programmatic access to puzzles and analytics',
-  favicon: 'img/puzzleme-logo.svg',
+  favicon: 'img/favicon.svg',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
