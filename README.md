@@ -34,7 +34,7 @@ yarn build
 This command generates static content into the `build` directory and can be served using any static contents hosting service.
 
 ## Deployment
-
+[Userful resource](https://docusaurus.io/docs/deployment#deploy)
 ### GitHub Pages 
 
 The documentation is automatically deployed to GitHub Pages when changes are pushed to the `main` branch. The `deploy-doc.yml` GitHub Action will:
