@@ -35,16 +35,13 @@ This command generates static content into the `build` directory and can be serv
 
 ## Deployment
 
-Using SSH:
+### GitHub Pages 
 
-```bash
-USE_SSH=true yarn deploy
-```
+The documentation is automatically deployed to GitHub Pages when changes are pushed to the `main` branch. The `deploy-doc.yml` GitHub Action will:
 
-Not using SSH:
+1. Build the documentation site
+2. Deploy it to GitHub Pages
+3. Make it accessible at [amuselabs.github.io/api-doc](https://amuselabs.github.io/api-doc)
 
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
+Simply push your changes to the `main` branch and the deployment will be triggered automatically.
 
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.

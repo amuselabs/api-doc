@@ -49,10 +49,7 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           routeBasePath: '/',
           docItemComponent: "@theme/ApiItem", // Derived from docusaurus-theme-openapi
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          // Edit this page links are disabled by removing the editUrl property
         },
         blog: false,
         theme: {
