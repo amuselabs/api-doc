@@ -53,17 +53,17 @@
 /* Method-specific colors - we'll use JavaScript to add classes */
 .api-method-get::before {
   content: "GET";
-  background-color: #61affe;
+  background-color: rgb(47, 129, 50)
 }
 
 .api-method-post::before {
   content: "POST";
-  background-color: #49cc90;
+  background-color: rgb(24, 111, 175);
 }
 
 .api-method-put::before {
   content: "PUT";
-  background-color: #fca130;
+  background-color: hsl(33, 87%, 51%);
 }
 
 .api-method-delete::before {

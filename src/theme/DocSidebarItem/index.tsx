@@ -24,7 +24,7 @@ export default function DocSidebarItem(props) {
   // If this is an API method item, render with method badge
   if (methodType) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '16px' }}>
         <span
           style={{
             backgroundColor: methodColor,
