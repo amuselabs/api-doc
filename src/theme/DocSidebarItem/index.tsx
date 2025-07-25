@@ -1,24 +1,25 @@
 import DefaultSidebarItem from '@theme-original/DocSidebarItem';
 
+
 export default function DocSidebarItem(props) {
   let methodType = ""; 
-  let methodColor = "";
+  let methodClass = "";
   
   if (props.item.className?.includes("get")) {
     methodType = "GET";
-    methodColor = "#61affe";
+    methodClass = "api-method-get";
   } else if (props.item.className?.includes("post")) {
     methodType = "POST";
-    methodColor = "#49cc90";
+    methodClass = "api-method-post";
   } else if (props.item.className?.includes("put")) {
     methodType = "PUT";
-    methodColor = "#fca130";
+    methodClass = "api-method-put";
   } else if (props.item.className?.includes("delete")) {
     methodType = "DELETE";
-    methodColor = "#f93e3e";
+    methodClass = "api-method-delete";
   } else if (props.item.className?.includes("patch")) {
     methodType = "PATCH";
-    methodColor = "#50e3c2";
+    methodClass = "api-method-patch";
   }
 
   // If this is an API method item, render with method badge
@@ -26,17 +27,7 @@ export default function DocSidebarItem(props) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '16px' }}>
         <span
-          style={{
-            backgroundColor: methodColor,
-            color: 'white',
-            padding: '2px 6px',
-            borderRadius: '4px',
-            fontSize: '11px',
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            minWidth: 'fit-content',
-            flexShrink: 0,
-          }}
+          className={methodClass}
         >
           {methodType}
         </span>
