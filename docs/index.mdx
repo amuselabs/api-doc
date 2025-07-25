@@ -4,9 +4,10 @@ slug: /
 title: Redirecting...
 ---
 
+import React from 'react';
 import { Redirect } from '@docusaurus/router';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
-{/* This is hardcoded wrt baseURL path so if that changes then this should be changed as well. It is to
-enforce that whenever someone simply opens /api-doc then redirects to the first page of the documentation. */}
+{/* This dynamically adds the baseUrl so you don't need to hardcode /api-doc */}
 
-<Redirect to="/puzzleme-api" />
+<Redirect to={useBaseUrl('/puzzleme-api')} />
