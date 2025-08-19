@@ -17,7 +17,6 @@ info:
     We are in the process of introducing usage-based metering for this API suite. While metering is not currently active, we encourage you to design your integration with this in mind. Once metering is enabled, you may be subject to usage limits and billing based on your API consumption.
 servers:
   - url: https://staging.amuselabs.com/pmm
-  - url: https://staging.amuselabs.com/api-beta
 tags:
   - name: Auth
     x-displayName: Auth
