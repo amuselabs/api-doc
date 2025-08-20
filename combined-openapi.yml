@@ -48,13 +48,13 @@ paths:
         - **Historical Analysis:** Compare performance across different time ranges by using different `from`/`to` combinations.
         - **Post-Contest Analysis:** After a contest ends, analyze only contest submissions by combining `contestSubmissionsOnly=true` with the contest time window.
       parameters:
-        - name: set
+        - name: series
           in: query
           required: true
           schema:
             type: string
           description: The series identifier for the puzzle.
-        - name: id
+        - name: puzzleId
           in: query
           required: true
           schema:
@@ -104,13 +104,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/LeaderboardResult'
         '400':
-          description: Bad Request - Missing or invalid `set` or `id` parameters.
+          description: Bad Request - Missing or invalid `series` or `puzzleId` parameters.
         '401':
           description: Unauthorized - Missing or invalid authentication credentials.
         '403':
           description: Forbidden - The user does not have permission to view the leaderboard for this series.
         '404':
-          description: Not Found - The puzzle with the specified `id` was not found in the given `set`.
+          description: Not Found - The puzzle with the specified `puzzleId` was not found in the given `series`.
       security:
         - bearerAuth: []
       tags:
@@ -123,7 +123,7 @@ paths:
 
         **1. Specific Puzzle Request:**
         Returns metadata for a single puzzle.
-        - Requires `series` and `id`.
+        - Requires `series` and `puzzleId`.
 
         **2. Time Range Request:**
         Returns a list of puzzles within a given time range, sorted by publish time in descending order (newest first).
@@ -137,7 +137,7 @@ paths:
           schema:
             type: string
           description: Series identifier
-        - name: id
+        - name: puzzleId
           in: query
           required: false
           schema:
@@ -202,7 +202,7 @@ paths:
           schema:
             type: string
           description: Series identifier
-        - name: id
+        - name: puzzleId
           in: query
           required: false
           schema:
@@ -326,7 +326,7 @@ paths:
           schema:
             type: string
           description: Series identifier
-        - name: id
+        - name: puzzleId
           in: query
           required: false
           schema:
@@ -451,7 +451,7 @@ components:
           properties:
             id:
               type: string
-            set:
+            series:
               type: string
             title:
               type: string
