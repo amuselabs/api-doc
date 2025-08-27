@@ -48,8 +48,8 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "get-plays-for-a-series-puzzle-or-user",
-          label: "Get plays for a series, puzzle, or user",
+          id: "get-plays-for-a-series-or-specific-puzzles",
+          label: "Get plays for a series or specific puzzles",
           className: "api-method get",
         },
       ],
