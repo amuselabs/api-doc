@@ -333,187 +333,34 @@ paths:
         - If only `from` is provided, plays from that time onwards are considered.
         - If only `to` is provided, plays up to that time are considered.
         - If both are provided, plays between `from` and `to` (inclusive) are considered.
-        
-        **Use Cases:**
-        - **Series Analysis:** Get all plays for an entire series to analyze overall performance
-        - **Specific Puzzle Analysis:** Filter plays for specific puzzles using `puzzleIds` parameter
-        - **User Analysis:** Filter plays for a specific user using `userId` parameter
-        - **Time-based Analysis:** Analyze plays within specific time ranges
-        - **Pagination:** Use `limit` and `offset` for large datasets
-        
+       
+        **Pagination Support**
+
+        Results are paginated with the `limit` and `offset` query parameters and are ordered by **`lastUpdatedTime` in descending order** (most recently updated first).
+        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the  number of records to skip (in the descending order of `lastUpdatedTime`) before starting to return results. To retrieve all the plays using this endpoint 
+        1. Call the endpoint with `offset=0`.  
+        2. Process the returned plays.  
+        3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.  
+        4. Repeat step 3 until a response returns `hasMore` field as false, indicating there are no more results.
+ 
+       
         **Examples:**
         
-        **Single Puzzle Plays:**
+        **Single Puzzle Play for given User:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=pm&puzzleIds=123ba400&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&puzzleIds=123ba400&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
         -H 'Accept: application/json'
         ```
         
-        **Multiple Puzzle Plays (Comma-separated):**
+        **Multiple Puzzle Plays (Comma-separated puzzle ids) for a given User:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=pm&puzzleIds=123ba400,46892ef6&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&puzzleIds=123ba400,46892ef6&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
         -H 'Accept: application/json'
         ```
-        
-        **Pagination Example (Iterating through all plays):**
-        ```javascript
-        // JavaScript example for paginating through all plays
-        async function getAllPlays(series, options = {}) {
-          const allPlays = [];
-          let offset = 0;
-          const limit = options.limit || 50;
-          
-          do {
-            const response = await fetch(`/api/v1/plays?series=${series}&limit=${limit}&offset=${offset}`, {
-              headers: {
-                'X-API-TOKEN': 'your-api-token',
-                'Accept': 'application/json'
-              }
-            });
-            
-            const data = await response.json();
-            allPlays.push(...data.plays);
-            
-            // Check if there are more plays to fetch
-            if (data.hasMore) {
-              offset += limit;
-            } else {
-              break;
-            }
-          } while (true);
-          
-          return allPlays;
-        }
-        
-        // Usage
-        const allPlays = await getAllPlays('pm', { limit: 25 });
-        ```
-        
-        **Python Example for Pagination:**
-        ```python
-        import requests
-        
-        def get_all_plays(series, api_token, limit=50):
-            all_plays = []
-            offset = 0
-            
-            while True:
-                response = requests.get(
-                    f'/api/v1/plays',
-                    params={
-                        'series': series,
-                        'limit': limit,
-                        'offset': offset
-                    },
-                    headers={
-                        'X-API-TOKEN': api_token,
-                        'Accept': 'application/json'
-                    }
-                )
-                
-                data = response.json()
-                all_plays.extend(data['plays'])
-                
-                # Check if there are more plays
-                if not data['hasMore']:
-                    break
-                    
-                offset += limit
-            
-            return all_plays
-        
-        # Usage
-        plays = get_all_plays('pm', 'your-api-token', limit=25)
-        ```
-        
-        **Error Handling Examples:**
-        
-        **JavaScript Error Handling:**
-        ```javascript
-        async function getPlaysWithErrorHandling(series, apiToken) {
-          try {
-            const response = await fetch(`/api/v1/plays?series=${series}`, {
-              headers: {
-                'X-API-TOKEN': apiToken,
-                'Accept': 'application/json'
-              }
-            });
-            
-            const data = await response.json();
-            
-            // Check for error responses
-            if (data.status === 1) {
-              switch (data.errorCode) {
-                case 6:
-                  console.error('Token expired:', data.errorMessage);
-                  // Handle token refresh or re-authentication
-                  break;
-                case 10:
-                  console.error('Invalid parameter:', data.errorDetails.paramName);
-                  // Handle missing or invalid parameters
-                  break;
-                case 8:
-                  console.error('No access to series:', data.errorDetails.series);
-                  // Handle authorization issues
-                  break;
-                default:
-                  console.error('API Error:', data.errorMessage);
-              }
-              return null;
-            }
-            
-            return data.plays;
-          } catch (error) {
-            console.error('Network error:', error);
-            return null;
-          }
-        }
-        ```
-        
-        **Python Error Handling:**
-        ```python
-        import requests
-        
-        def get_plays_with_error_handling(series, api_token):
-            try:
-                response = requests.get(
-                    f'/api/v1/plays',
-                    params={'series': series},
-                    headers={
-                        'X-API-TOKEN': api_token,
-                        'Accept': 'application/json'
-                    }
-                )
-                
-                data = response.json()
-                
-                # Check for error responses
-                if data.get('status') == 1:
-                    error_code = data.get('errorCode')
-                    error_message = data.get('errorMessage')
-                    error_details = data.get('errorDetails', {})
-                    
-                    if error_code == 6:
-                        print(f"Token expired: {error_message}")
-                        # Handle token refresh or re-authentication
-                    elif error_code == 10:
-                        param_name = error_details.get('paramName')
-                        print(f"Invalid parameter: {param_name}")
-                        # Handle missing or invalid parameters
-                    elif error_code == 8:
-                        series_name = error_details.get('series')
-                        print(f"No access to series: {series_name}")
-                        # Handle authorization issues
-                    else:
-                        print(f"API Error: {error_message}")
-                    
-                    return None
-                
-                return data.get('plays', [])
-                
-            except requests.exceptions.RequestException as e:
-                print(f"Network error: {e}")
-                return None
+        **All Plays for a given User for a given series:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Accept: application/json'
         ```
       parameters:
         - name: series
@@ -615,18 +462,6 @@ paths:
                           playState: "inProgress"
                         score: 0
                         screenTimeSeconds: 308
-                      - userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
-                        puzzleId: "46892ef6"
-                        series: "pm"
-                        puzzleType: "crossword"
-                        startedAt: "2023-08-01T06:39:41Z"
-                        endedAt: "2023-08-02T08:22:00Z"
-                        playProgress:
-                          totalBoxes: 12
-                          filledBoxes: 12
-                          playState: "completed"
-                        score: 0
-                        screenTimeSeconds: 24
                     hasMore: false
                 multiple_puzzle_plays:
                   summary: Plays for multiple puzzles
@@ -672,39 +507,6 @@ paths:
                         score: 75
                         screenTimeSeconds: 1785
                     hasMore: false
-                paginated_plays:
-                  summary: Paginated plays with hasMore flag
-                  description: |
-                    Example response showing paginated results with hasMore flag indicating
-                    more data is available for subsequent requests.
-                  value:
-                    status: 0
-                    plays:
-                      - userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
-                        puzzleId: "123ba400"
-                        series: "pm"
-                        puzzleType: "crossword"
-                        startedAt: "2023-09-06T10:21:13Z"
-                        endedAt: "2023-09-06T10:31:00Z"
-                        playProgress:
-                          totalBoxes: 100
-                          filledBoxes: 75
-                          playState: "inProgress"
-                        score: 75
-                        screenTimeSeconds: 308
-                      - userId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-                        puzzleId: "46892ef6"
-                        series: "pm"
-                        puzzleType: "jigsaw"
-                        startedAt: "2023-08-01T06:39:41Z"
-                        endedAt: "2023-08-02T08:22:00Z"
-                        playProgress:
-                          totalPieces: 100
-                          remainingPieces: 25
-                          playState: "inProgress"
-                        score: 75
-                        screenTimeSeconds: 24
-                    hasMore: true
         '400':
           description: Bad request (missing/invalid parameters)
           content:
@@ -804,11 +606,11 @@ components:
         series:
           type: string
           description: Series name
-          example: "crossword"
+          example: "demo-api"
         puzzleType:
           type: string
           enum: [crossword, codeword, krisskross, sudoku, quiz, wordsearch, wordflower, jigsaw]
-          description: Puzzle type (lowercase)
+          description: Puzzle type
           example: "crossword"
         startedAt:
           type: string
@@ -836,7 +638,7 @@ components:
         screenTimeSeconds:
           type: integer
           minimum: 0
-          description: Time spent on puzzle in seconds
+          description: Screen time spent on puzzle in seconds on the frontend 
           example: 2700
     PlayState:
       type: string
@@ -851,7 +653,7 @@ components:
         totalBoxes:
           type: integer
           minimum: 0
-          description: Total boxes that can be filled (excluding pre-revealed)
+          description: Total boxes that need to be filled 
           example: 100
         filledBoxes:
           type: integer
@@ -867,7 +669,7 @@ components:
         attemptedQuestions:
           type: integer
           minimum: 0
-          description: Number of questions attempted by the user
+          description: Number of questions attempted by the user. Total number of questions can be read using Puzzles API endpoint.
           example: 8
     WordSearchPlayProgress:
       type: object
