@@ -125,7 +125,6 @@ paths:
         Returns metadata for one or more specific puzzles.
         - Requires `series` and `puzzleIds` (comma-separated list).
         - Maximum 30 puzzle IDs allowed per request.
-        - For backward compatibility, `puzzleId` (single puzzle) is also supported.
 
         **2. Time Range Request:**
         Returns a list of puzzles within a given time range, sorted by publish time in descending order (newest first).
