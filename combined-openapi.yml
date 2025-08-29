@@ -455,7 +455,7 @@ paths:
                         series: "pm"
                         puzzleType: "crossword"
                         startedAt: "2023-09-06T10:21:13Z"
-                        endedAt: "2023-09-06T10:31:00Z"
+                        updatedAt: "2023-09-06T10:31:00Z"
                         playProgress:
                           totalBoxes: 0
                           filledBoxes: 0
@@ -476,7 +476,7 @@ paths:
                         series: "pm"
                         puzzleType: "crossword"
                         startedAt: "2023-09-06T10:21:13Z"
-                        endedAt: "2023-09-06T10:31:00Z"
+                        updatedAt: "2023-09-06T10:31:00Z"
                         playProgress:
                           totalBoxes: 100
                           filledBoxes: 75
@@ -488,7 +488,7 @@ paths:
                         series: "pm"
                         puzzleType: "quiz"
                         startedAt: "2023-08-01T06:39:41Z"
-                        endedAt: "2023-08-02T08:22:00Z"
+                        updatedAt: "2023-08-02T08:22:00Z"
                         playProgress:
                           attemptedQuestions: 8
                           playState: "completed"
@@ -499,7 +499,7 @@ paths:
                         series: "pm"
                         puzzleType: "wordsearch"
                         startedAt: "2023-08-03T14:15:30Z"
-                        endedAt: "2023-08-03T14:45:15Z"
+                        updatedAt: "2023-08-03T14:45:15Z"
                         playProgress:
                           totalWords: 20
                           wordsFound: 15
@@ -617,10 +617,10 @@ components:
           format: date-time
           description: Play start time in ISO 8601 UTC format
           example: "2024-01-15T10:30:00Z"
-        endedAt:
+        updatedAt:
           type: string
           format: date-time
-          description: Play end time in ISO 8601 UTC format
+          description: Time when the play was updated last, in ISO 8601 UTC format
           example: "2024-01-15T11:15:00Z"
         playProgress:
           oneOf:
