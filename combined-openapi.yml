@@ -244,22 +244,22 @@ paths:
                     status: 0
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
-                        - title: "Gorilla Glue"
-                          author: "Elizabeth C. Gorski"
+                        - title: "Daily Crossword"
+                          author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
                           publicationTime: 1701286140000
-                          publicationTimeZone: "Asia/Kolkata"
+                          publicationTimeZone: "America/New_York"
                           thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
                           gridWidth: 15
                           gridHeight: 15
                           numWords: 78
-                        - title: "Demo Crossword"
-                          author: "Paolo Pasco"
+                        - title: "Sample Puzzle"
+                          author: "John Doe"
                           puzzleId: "50a2ab68"
                           puzzleType: "CROSSWORD"
                           publicationTime: 1701144540000
-                          publicationTimeZone: "Asia/Kolkata"
+                          publicationTimeZone: "America/New_York"
                           thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
                           gridWidth: 7
                           gridHeight: 5
@@ -274,12 +274,12 @@ paths:
                     status: 0
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
-                        - title: "Gorilla Glue"
-                          author: "Elizabeth C. Gorski"
+                        - title: "Daily Crossword"
+                          author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
                           publicationTime: 1701286140000
-                          publicationTimeZone: "Asia/Kolkata"
+                          publicationTimeZone: "America/New_York"
                           thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
                           gridWidth: 15
                           gridHeight: 15
@@ -938,12 +938,12 @@ components:
                 - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
           example:
             api-demo-crossword:
-              - title: "Gorilla Glue"
-                author: "Elizabeth C. Gorski"
+              - title: "Daily Crossword"
+                author: "Jane Smith"
                 puzzleId: "82e56966"
                 puzzleType: "CROSSWORD"
                 publicationTime: 1701286140000
-                publicationTimeZone: "Asia/Kolkata"
+                publicationTimeZone: "America/New_York"
                 thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
                 gridWidth: 15
                 gridHeight: 15
@@ -958,11 +958,11 @@ components:
         title:
           type: string
           description: Puzzle title
-          example: "Gorilla Glue"
+          example: "Daily Crossword"
         author:
           type: string
           description: Puzzle author/constructor name
-          example: "Elizabeth C. Gorski"
+          example: "Jane Smith"
         puzzleId:
           type: string
           description: Unique puzzle identifier
@@ -979,7 +979,7 @@ components:
         publicationTimeZone:
           type: string
           description: Timezone of the publication time
-          example: "Asia/Kolkata"
+          example: "America/New_York"
         thumbnailURL:
           type: string
           description: URL to the puzzle thumbnail image
