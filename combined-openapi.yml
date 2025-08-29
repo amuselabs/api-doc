@@ -125,6 +125,7 @@ paths:
         Returns metadata for one or more specific puzzles.
         - Requires `series` and `puzzleIds` (comma-separated list).
         - Maximum 30 puzzle IDs allowed per request.
+        - For backward compatibility, `puzzleId` (single puzzle) is also supported.
 
         **2. Time Range Request:**
         Returns a list of puzzles within a given time range, sorted by publish time in descending order (newest first).
@@ -132,13 +133,51 @@ paths:
         - `from` and `to` define the time range (both must be in ISO 8601 format with a timezone offset).
         - `limit` and `offset` can be used for pagination.
         - `hasMore` is a boolean indicating if there are more puzzles available for pagination.
+
+        **Puzzle Type Support:**
+        - **Grid Games** (Crossword, Codeword, KrissKross, Sudoku): Grid dimensions and word count
+        - **Quiz Games**: Number of questions
+       
+        **Pagination and Ordering:**
+        Results are paginated with the `limit` and `offset` query parameters and are ordered by **`publicationTime` in descending order** (newest first).
+        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the number of records to skip (in the descending order of `publicationTime`) before starting to return results. To retrieve all the puzzles using this endpoint:
+        1. Call the endpoint with `offset=0`.  
+        2. Process the returned puzzles.  
+        3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.  
+        4. Repeat step 3 until a response returns `hasMore` field as false, indicating there are no more results.
+        
+        **Use Cases:**
+        - **Puzzle Discovery:** Browse available puzzles in a series by publication date
+        - **Content Management:** Retrieve metadata for specific puzzles by ID
+
+        **Examples:**
+        
+        **Specific Puzzle Request:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&puzzleIds=82e56966' \
+        -H 'Accept: application/json'
+        ```
+        
+        **Multiple Puzzles Request:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&puzzleIds=82e56966,50a2ab68,a7b2b0e0' \
+        -H 'Accept: application/json'
+        ```
+        
+        **Time Range Request (Last 30 days):**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&from=2024-01-01T00:00:00Z&to=2024-01-31T23:59:59Z&limit=10&offset=0' \
+        -H 'Accept: application/json'
+        ```
       parameters:
         - name: series
           in: query
           required: true
           schema:
             type: string
-          description: Series identifier
+          description: |
+            Series identifier for the puzzle collection.
+            Example: "api-demo-crossword", "demo-quiz", "jigsaw-series"
         - name: puzzleIds
           in: query
           required: false
@@ -154,14 +193,20 @@ paths:
           schema:
             type: string
             format: date-time
-          description: 'Publish time start range (ISO_OFFSET_DATE_TIME format, inclusive). Defaults to 2013-01-01T00:00:00Z if not specified.'
+          description: |
+            Start time for puzzle publication range in ISO 8601 format with timezone offset.
+            Defaults to 2013-01-01T00:00:00Z if not specified.
+            Example: "2024-01-01T00:00:00Z" or "2024-01-01T00:00:00+05:30"
         - name: to
           in: query
           required: false
           schema:
             type: string
             format: date-time
-          description: 'Publish time end range (ISO_OFFSET_DATE_TIME format, exclusive). Defaults to the current time if not specified.'
+          description: |
+            End time for puzzle publication range in ISO 8601 format with timezone offset.
+            Defaults to the current time if not specified.
+            Example: "2024-01-31T23:59:59Z" or "2024-01-31T23:59:59+05:30"
         - name: limit
           in: query
           required: false
@@ -169,14 +214,20 @@ paths:
             type: integer
             default: 1
             maximum: 30
-          description: Maximum number of puzzles to return (for time range requests)
+          description: |
+            Maximum number of puzzles to return (for time range requests).
+            Used for pagination to control the number of results per page.
+            Example: 10
         - name: offset
           in: query
           required: false
           schema:
             type: integer
             default: 0
-          description: Number of puzzles to skip from the start
+          description: |
+            Number of puzzles to skip from the start (for pagination).
+            Used to implement pagination by skipping previous results.
+            Example: 20 (skips first 20 puzzles)
       responses:
         '200':
           description: Successful response with puzzle metadata
@@ -184,6 +235,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PuzzleResponseAPI'
+              examples:
+                time_range_puzzles:
+                  summary: Time range puzzles with pagination
+                  description: |
+                    Example response showing puzzles from a time range with pagination.
+                    The `hasMore` field indicates there are more puzzles available.
+                  value:
+                    status: 0
+                    seriesToPuzzleMetadata:
+                      api-demo-crossword:
+                        - title: "Gorilla Glue"
+                          author: "Elizabeth C. Gorski"
+                          puzzleId: "82e56966"
+                          puzzleType: "CROSSWORD"
+                          publicationTime: 1701286140000
+                          publicationTimeZone: "Asia/Kolkata"
+                          thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
+                          gridWidth: 15
+                          gridHeight: 15
+                          numWords: 78
+                        - title: "Demo Crossword"
+                          author: "Paolo Pasco"
+                          puzzleId: "50a2ab68"
+                          puzzleType: "CROSSWORD"
+                          publicationTime: 1701144540000
+                          publicationTimeZone: "Asia/Kolkata"
+                          thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
+                          gridWidth: 7
+                          gridHeight: 5
+                          numWords: 14
+                    hasMore: true
+                specific_puzzles:
+                  summary: Specific puzzles request
+                  description: |
+                    Example response showing specific puzzles requested by puzzle IDs.
+                    The `hasMore` field is false since we return exactly what was requested.
+                  value:
+                    status: 0
+                    seriesToPuzzleMetadata:
+                      api-demo-crossword:
+                        - title: "Gorilla Glue"
+                          author: "Elizabeth C. Gorski"
+                          puzzleId: "82e56966"
+                          puzzleType: "CROSSWORD"
+                          publicationTime: 1701286140000
+                          publicationTimeZone: "Asia/Kolkata"
+                          thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
+                          gridWidth: 15
+                          gridHeight: 15
+                          numWords: 78
+                    hasMore: false
         '400':
           description: Bad request (missing/invalid parameters)
           content:
@@ -817,9 +919,17 @@ components:
           type: integer
     PuzzleResponseAPI:
       type: object
+      description: Response containing puzzle metadata organized by series
       properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
         seriesToPuzzleMetadata:
           type: object
+          description: |
+            Map of series names to arrays of puzzle metadata.
+            Each series contains puzzles with type-specific metadata fields.
           additionalProperties:
             type: array
             items:
@@ -827,45 +937,86 @@ components:
                 - $ref: '#/components/schemas/GridGameMetadata'
                 - $ref: '#/components/schemas/QuizGameMetadata'
                 - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
+          example:
+            api-demo-crossword:
+              - title: "Gorilla Glue"
+                author: "Elizabeth C. Gorski"
+                puzzleId: "82e56966"
+                puzzleType: "CROSSWORD"
+                publicationTime: 1701286140000
+                publicationTimeZone: "Asia/Kolkata"
+                thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
+                gridWidth: 15
+                gridHeight: 15
+                numWords: 78
         hasMore:
           type: boolean
           description: Indicates if there are more puzzles available. When true, use limit and offset parameters to fetch the next page of results.
     BaseFormattedPuzzleMetadata:
       type: object
+      description: Base puzzle metadata containing common fields for all puzzle types
       properties:
         title:
           type: string
+          description: Puzzle title
+          example: "Gorilla Glue"
         author:
           type: string
+          description: Puzzle author/constructor name
+          example: "Elizabeth C. Gorski"
         puzzleId:
           type: string
+          description: Unique puzzle identifier
+          example: "82e56966"
         puzzleType:
           type: string
+          enum: [CROSSWORD, CODEWORD, KRISSKROSS, SUDOKU, QUIZ, WORDSEARCH, WORDFLOWER, JIGSAW]
+          description: Type of puzzle
+          example: "CROSSWORD"
         publicationTime:
           type: integer
+          description: Publication timestamp in milliseconds since epoch (UTC)
+          example: 1701286140000
         publicationTimeZone:
           type: string
+          description: Timezone of the publication time
+          example: "Asia/Kolkata"
         thumbnailURL:
           type: string
+          description: URL to the puzzle thumbnail image
+          example: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
     GridGameMetadata:
       allOf:
         - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
         - type: object
+          description: Additional metadata for grid-based games (Crossword, Codeword, KrissKross, Sudoku)
           properties:
             gridWidth:
               type: integer
-              description: The width of the puzzle grid.
+              minimum: 1
+              description: The width of the puzzle grid in cells
+              example: 15
             gridHeight:
               type: integer
-              description: The height of the puzzle grid.
+              minimum: 1
+              description: The height of the puzzle grid in cells
+              example: 15
+            numWords:
+              type: integer
+              minimum: 0
+              description: The number of words/clues in the puzzle
+              example: 78
     QuizGameMetadata:
       allOf:
         - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
         - type: object
+          description: Additional metadata for quiz games
           properties:
             numOfQuestions:
               type: integer
-              description: The number of questions in the quiz.
+              minimum: 1
+              description: The number of questions in the quiz
+              example: 10
     PuzzleMetadata:
       type: object
       properties:
