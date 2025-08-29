@@ -121,15 +121,18 @@ paths:
       description: |
         Retrieves puzzle metadata based on specific criteria. Supports two mutually exclusive request types:
 
-        **1. Specific Puzzle Request:**
-        Returns metadata for a single puzzle.
-        - Requires `series` and `puzzleId`.
+        **1. Specific/Multiple Puzzles Request:**
+        Returns metadata for one or more specific puzzles.
+        - Requires `series` and `puzzleIds` (comma-separated list).
+        - Maximum 30 puzzle IDs allowed per request.
+        - For backward compatibility, `puzzleId` (single puzzle) is also supported.
 
         **2. Time Range Request:**
         Returns a list of puzzles within a given time range, sorted by publish time in descending order (newest first).
         - Requires `series`.
         - `from` and `to` define the time range (both must be in ISO 8601 format with a timezone offset).
         - `limit` and `offset` can be used for pagination.
+        - `hasMore` is a boolean indicating if there are more puzzles available for pagination.
       parameters:
         - name: series
           in: query
@@ -137,12 +140,15 @@ paths:
           schema:
             type: string
           description: Series identifier
-        - name: puzzleId
+        - name: puzzleIds
           in: query
           required: false
           schema:
             type: string
-          description: Puzzle ID (for specific puzzle request)
+          description: |
+            Comma-separated list of puzzle IDs (for specific/multiple puzzles request).
+            Maximum 30 puzzle IDs allowed per request.
+            Example: "daily-2024-01-15,daily-2024-01-16,daily-2024-01-17"
         - name: from
           in: query
           required: false
@@ -163,8 +169,8 @@ paths:
           schema:
             type: integer
             default: 1
-            maximum: 14
-          description: Maximum number of puzzles to return
+            maximum: 30
+          description: Maximum number of puzzles to return (for time range requests)
         - name: offset
           in: query
           required: false
@@ -181,6 +187,30 @@ paths:
                 $ref: '#/components/schemas/PuzzleResponseAPI'
         '400':
           description: Bad request (missing/invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                too_many_puzzle_ids:
+                  summary: Too many puzzle IDs
+                  description: Error response when more than 30 puzzle IDs are provided
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "puzzleIds"
+                      value: "Maximum 30 puzzle IDs are allowed in a single request. Received: 150"
+                missing_required_parameter:
+                  summary: Missing required parameter
+                  description: Error response when a required parameter is missing
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "series"
         '401':
           description: Unauthorized (invalid or missing API token)
         '403':
@@ -798,6 +828,9 @@ components:
                 - $ref: '#/components/schemas/GridGameMetadata'
                 - $ref: '#/components/schemas/QuizGameMetadata'
                 - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
+        hasMore:
+          type: boolean
+          description: Indicates if there are more puzzles available. When true, use limit and offset parameters to fetch the next page of results.
     BaseFormattedPuzzleMetadata:
       type: object
       properties:
