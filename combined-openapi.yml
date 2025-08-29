@@ -334,14 +334,17 @@ paths:
         - If only `to` is provided, plays up to that time are considered.
         - If both are provided, plays between `from` and `to` (inclusive) are considered.
        
-        **Pagination Support**
-
-        Results are paginated with the `limit` and `offset` query parameters and are ordered by **`lastUpdatedTime` in descending order** (most recently updated first).
-        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the  number of records to skip (in the descending order of `lastUpdatedTime`) before starting to return results. To retrieve all the plays using this endpoint 
+        **Pagination and Ordering:**
+        Results are paginated with the `limit` and `offset` query parameters and are ordered by **`updatedAt` in descending order** (most recently updated first).
+        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the number of records to skip (in the descending order of `updatedAt`) before starting to return results. To retrieve all the plays using this endpoint:
         1. Call the endpoint with `offset=0`.  
         2. Process the returned plays.  
         3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.  
         4. Repeat step 3 until a response returns `hasMore` field as false, indicating there are no more results.
+        
+        **Use Cases:**
+        - **Streak Computation:** Use `updatedAt` combined with `playProgress` fields to compute user streaks. For example, calculate consecutive days a user has completed puzzles by checking if `updatedAt` falls on the puzzle's publish date and the `playProgress.playState` indicates completion. This ensures streaks are based on actual puzzle completion rather than just start times.
+        - **Puzzle Details:** To get detailed information about the puzzles corresponding to the returned play IDs, use the separate Puzzles API endpoint (`/api/v1/puzzles`) with the `puzzleIds` parameter containing the puzzle IDs from the plays response.
  
        
         **Examples:**
@@ -620,7 +623,7 @@ components:
         updatedAt:
           type: string
           format: date-time
-          description: Time when the play was updated last, in ISO 8601 UTC format
+          description: Time when the play was last updated, in ISO 8601 UTC format. The returned plays are sorted by this field in descending order (latest first).
           example: "2024-01-15T11:15:00Z"
         playProgress:
           oneOf:
