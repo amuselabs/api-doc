@@ -27,94 +27,6 @@ tags:
   - name: Analytics
     x-displayName: Analytics
 paths:
-  /api/v1/leaderboard:
-    get:
-      summary: Get leaderboard for a puzzle
-      description: |
-        Retrieves a list of top plays for a specific puzzle, sorted by score and time.
-        The endpoint supports both session-based and API token authentication.
-
-        **Time Range Filtering**
-        - Use `from` (inclusive) and/or `to` (inclusive) to filter plays by submission time (ISO 8601 format).
-        - If neither is provided, all plays are considered.
-        - If only `from` is provided, plays from that time onwards are considered.
-        - If only `to` is provided, plays up to that time are considered.
-        - If both are provided, plays between `from` and `to` (inclusive) are considered.
-        - Timestamps are rounded to the nearest second (contest mode) or minute (non-contest mode).
-
-        **Use Cases:**
-        - **Daily/Weekly Leaderboard:** Filter plays for a specific day or week using `from` and `to` parameters. For example, get all plays submitted on January 15th, 2024.
-        - **Contest Completion:** When a contest ends, use `to` parameter to freeze the leaderboard at the contest end time, ensuring no plays submitted after the contest are included.
-        - **Historical Analysis:** Compare performance across different time ranges by using different `from`/`to` combinations.
-        - **Post-Contest Analysis:** After a contest ends, analyze only contest submissions by combining `contestSubmissionsOnly=true` with the contest time window.
-      parameters:
-        - name: series
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The series identifier for the puzzle.
-        - name: puzzleId
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The puzzle ID for which to retrieve the leaderboard.
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 10
-            maximum: 100
-          description: The maximum number of leaderboard entries to return.
-        - name: useServerTime
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: false
-          description: If true, uses server time for the leaderboard. Automatically enabled for contest mode puzzles.
-        - name: from
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date-time
-          description: 'Submission time start range (ISO 8601, inclusive). Rounded to nearest second (contest) or minute (non-contest).'
-        - name: to
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date-time
-          description: 'Submission time end range (ISO 8601, inclusive). Rounded to nearest second (contest) or minute (non-contest).'
-        - name: contestSubmissionsOnly
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: false
-          description: If true, only includes plays with SUBMITTED state (contest submissions). Default is false.
-      responses:
-        '200':
-          description: A JSON object containing the leaderboard data.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LeaderboardResult'
-        '400':
-          description: Bad Request - Missing or invalid `series` or `puzzleId` parameters.
-        '401':
-          description: Unauthorized - Missing or invalid authentication credentials.
-        '403':
-          description: Forbidden - The user does not have permission to view the leaderboard for this series.
-        '404':
-          description: Not Found - The puzzle with the specified `puzzleId` was not found in the given `series`.
-      security:
-        - bearerAuth: []
-      tags:
-        - Plays
   /api/v1/puzzles:
     get:
       summary: Retrieve puzzle metadata
@@ -888,33 +800,6 @@ components:
         timeTaken:
           type: string
         score:
-          type: integer
-    LeaderboardResult:
-      type: object
-      properties:
-        leaderboard:
-          type: object
-          properties:
-            id:
-              type: string
-            series:
-              type: string
-            title:
-              type: string
-            useServerTime:
-              type: boolean
-            plays:
-              type: array
-              items:
-                $ref: '#/components/schemas/LeaderboardPlay'
-    LeaderboardPlay:
-      type: object
-      properties:
-        userId:
-          type: string
-        score:
-          type: integer
-        time:
           type: integer
     PuzzleResponseAPI:
       type: object

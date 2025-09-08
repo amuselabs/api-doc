@@ -36,12 +36,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "get-leaderboard-for-a-puzzle",
-          label: "Get leaderboard for a puzzle",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
           id: "get-series-or-puzzle-specific-aggregate-metrics",
           label: "Get series or puzzle specific aggregate metrics",
           className: "api-method get",
