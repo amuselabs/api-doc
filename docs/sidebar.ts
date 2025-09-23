@@ -36,20 +36,14 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "get-leaderboard-for-a-puzzle",
-          label: "Get leaderboard for a puzzle",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
           id: "get-series-or-puzzle-specific-aggregate-metrics",
           label: "Get series or puzzle specific aggregate metrics",
           className: "api-method get",
         },
         {
           type: "doc",
-          id: "get-plays-for-a-series-puzzle-or-user",
-          label: "Get plays for a series, puzzle, or user",
+          id: "get-plays-for-a-series-or-specific-puzzles",
+          label: "Get plays for a series or specific puzzles",
           className: "api-method get",
         },
       ],

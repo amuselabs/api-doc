@@ -27,151 +27,118 @@ tags:
   - name: Analytics
     x-displayName: Analytics
 paths:
-  /api/v1/leaderboard:
-    get:
-      summary: Get leaderboard for a puzzle
-      description: |
-        Retrieves a list of top plays for a specific puzzle, sorted by score and time.
-        The endpoint supports both session-based and API token authentication.
-
-        **Time Range Filtering**
-        - Use `from` (inclusive) and/or `to` (inclusive) to filter plays by submission time (ISO 8601 format).
-        - If neither is provided, all plays are considered.
-        - If only `from` is provided, plays from that time onwards are considered.
-        - If only `to` is provided, plays up to that time are considered.
-        - If both are provided, plays between `from` and `to` (inclusive) are considered.
-        - Timestamps are rounded to the nearest second (contest mode) or minute (non-contest mode).
-
-        **Use Cases:**
-        - **Daily/Weekly Leaderboard:** Filter plays for a specific day or week using `from` and `to` parameters. For example, get all plays submitted on January 15th, 2024.
-        - **Contest Completion:** When a contest ends, use `to` parameter to freeze the leaderboard at the contest end time, ensuring no plays submitted after the contest are included.
-        - **Historical Analysis:** Compare performance across different time ranges by using different `from`/`to` combinations.
-        - **Post-Contest Analysis:** After a contest ends, analyze only contest submissions by combining `contestSubmissionsOnly=true` with the contest time window.
-      parameters:
-        - name: set
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The series identifier for the puzzle.
-        - name: id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: The puzzle ID for which to retrieve the leaderboard.
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 10
-            maximum: 100
-          description: The maximum number of leaderboard entries to return.
-        - name: useServerTime
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: false
-          description: If true, uses server time for the leaderboard. Automatically enabled for contest mode puzzles.
-        - name: from
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date-time
-          description: 'Submission time start range (ISO 8601, inclusive). Rounded to nearest second (contest) or minute (non-contest).'
-        - name: to
-          in: query
-          required: false
-          schema:
-            type: string
-            format: date-time
-          description: 'Submission time end range (ISO 8601, inclusive). Rounded to nearest second (contest) or minute (non-contest).'
-        - name: contestSubmissionsOnly
-          in: query
-          required: false
-          schema:
-            type: boolean
-            default: false
-          description: If true, only includes plays with SUBMITTED state (contest submissions). Default is false.
-      responses:
-        '200':
-          description: A JSON object containing the leaderboard data.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LeaderboardResult'
-        '400':
-          description: Bad Request - Missing or invalid `set` or `id` parameters.
-        '401':
-          description: Unauthorized - Missing or invalid authentication credentials.
-        '403':
-          description: Forbidden - The user does not have permission to view the leaderboard for this series.
-        '404':
-          description: Not Found - The puzzle with the specified `id` was not found in the given `set`.
-      security:
-        - bearerAuth: []
-      tags:
-        - Plays
   /api/v1/puzzles:
     get:
       summary: Retrieve puzzle metadata
       description: |
         Retrieves puzzle metadata based on specific criteria. Supports two mutually exclusive request types:
 
-        **1. Specific Puzzle Request:**
-        Returns metadata for a single puzzle.
-        - Requires `series` and `id`.
+        **1. Specific/Multiple Puzzles Request:**
+        Returns metadata for one or more specific puzzles.
+        - Requires `series` and `puzzleIds` (comma-separated list).
+        - Maximum 30 puzzle IDs allowed per request.
 
         **2. Time Range Request:**
         Returns a list of puzzles within a given time range, sorted by publish time in descending order (newest first).
         - Requires `series`.
         - `from` and `to` define the time range (both must be in ISO 8601 format with a timezone offset).
         - `limit` and `offset` can be used for pagination.
+        - `hasMore` is a boolean indicating if there are more puzzles available for pagination.
+
+        **Puzzle Type Support:**
+        - **Grid Games** (Crossword, Codeword, KrissKross, Sudoku): Grid dimensions and word count
+        - **Quiz Games**: Number of questions
+       
+        **Pagination and Ordering:**
+        Results are paginated with the `limit` and `offset` query parameters and are ordered by **`publicationTime` in descending order** (newest first).
+        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the number of records to skip (in the descending order of `publicationTime`) before starting to return results. To retrieve all the puzzles using this endpoint:
+        1. Call the endpoint with `offset=0`.  
+        2. Process the returned puzzles.  
+        3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.  
+        4. Repeat step 3 until a response returns `hasMore` field as false, indicating there are no more results.
+        
+        **Use Cases:**
+        - **Puzzle Discovery:** Browse available puzzles in a series by publication date
+        - **Content Management:** Retrieve metadata for specific puzzles by ID
+
+        **Examples:**
+        
+        **Specific Puzzle Request:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&puzzleIds=82e56966' \
+        -H 'Accept: application/json'
+        ```
+        
+        **Multiple Puzzles Request:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&puzzleIds=82e56966,50a2ab68,a7b2b0e0' \
+        -H 'Accept: application/json'
+        ```
+        
+        **Time Range Request (Last 30 days):**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&from=2024-01-01T00:00:00Z&to=2024-01-31T23:59:59Z&limit=10&offset=0' \
+        -H 'Accept: application/json'
+        ```
       parameters:
         - name: series
           in: query
           required: true
           schema:
             type: string
-          description: Series identifier
-        - name: id
+          description: |
+            Series identifier for the puzzle collection.
+            Example: "api-demo-crossword", "demo-quiz", "jigsaw-series"
+        - name: puzzleIds
           in: query
           required: false
           schema:
             type: string
-          description: Puzzle ID (for specific puzzle request)
+          description: |
+            Comma-separated list of puzzle IDs (for specific/multiple puzzles request).
+            Maximum 30 puzzle IDs allowed per request.
+            Example: "daily-2024-01-15,daily-2024-01-16,daily-2024-01-17"
         - name: from
           in: query
           required: false
           schema:
             type: string
             format: date-time
-          description: 'Publish time start range (ISO_OFFSET_DATE_TIME format, inclusive). Defaults to 2013-01-01T00:00:00Z if not specified.'
+          description: |
+            Start time for puzzle publication range in ISO 8601 format with timezone offset.
+            Defaults to 2013-01-01T00:00:00Z if not specified.
+            Example: "2024-01-01T00:00:00Z" or "2024-01-01T00:00:00+05:30"
         - name: to
           in: query
           required: false
           schema:
             type: string
             format: date-time
-          description: 'Publish time end range (ISO_OFFSET_DATE_TIME format, exclusive). Defaults to the current time if not specified.'
+          description: |
+            End time for puzzle publication range in ISO 8601 format with timezone offset.
+            Defaults to the current time if not specified.
+            Example: "2024-01-31T23:59:59Z" or "2024-01-31T23:59:59+05:30"
         - name: limit
           in: query
           required: false
           schema:
             type: integer
             default: 1
-            maximum: 14
-          description: Maximum number of puzzles to return
+            maximum: 30
+          description: |
+            Maximum number of puzzles to return (for time range requests).
+            Used for pagination to control the number of results per page.
+            Example: 10
         - name: offset
           in: query
           required: false
           schema:
             type: integer
             default: 0
-          description: Number of puzzles to skip from the start
+          description: |
+            Number of puzzles to skip from the start (for pagination).
+            Used to implement pagination by skipping previous results.
+            Example: 20 (skips first 20 puzzles)
       responses:
         '200':
           description: Successful response with puzzle metadata
@@ -179,8 +146,83 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PuzzleResponseAPI'
+              examples:
+                time_range_puzzles:
+                  summary: Time range puzzles with pagination
+                  description: |
+                    Example response showing puzzles from a time range with pagination.
+                    The `hasMore` field indicates there are more puzzles available.
+                  value:
+                    status: 0
+                    seriesToPuzzleMetadata:
+                      api-demo-crossword:
+                        - title: "Daily Crossword"
+                          author: "Jane Smith"
+                          puzzleId: "82e56966"
+                          puzzleType: "CROSSWORD"
+                          publicationTime: 1701286140000
+                          publicationTimeZone: "America/New_York"
+                          thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
+                          gridWidth: 15
+                          gridHeight: 15
+                          numWords: 78
+                        - title: "Sample Puzzle"
+                          author: "John Doe"
+                          puzzleId: "50a2ab68"
+                          puzzleType: "CROSSWORD"
+                          publicationTime: 1701144540000
+                          publicationTimeZone: "America/New_York"
+                          thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
+                          gridWidth: 7
+                          gridHeight: 5
+                          numWords: 14
+                    hasMore: true
+                specific_puzzles:
+                  summary: Specific puzzles request
+                  description: |
+                    Example response showing specific puzzles requested by puzzle IDs.
+                    The `hasMore` field is false since we return exactly what was requested.
+                  value:
+                    status: 0
+                    seriesToPuzzleMetadata:
+                      api-demo-crossword:
+                        - title: "Daily Crossword"
+                          author: "Jane Smith"
+                          puzzleId: "82e56966"
+                          puzzleType: "CROSSWORD"
+                          publicationTime: 1701286140000
+                          publicationTimeZone: "America/New_York"
+                          thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
+                          gridWidth: 15
+                          gridHeight: 15
+                          numWords: 78
+                    hasMore: false
         '400':
           description: Bad request (missing/invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                too_many_puzzle_ids:
+                  summary: Too many puzzle IDs
+                  description: Error response when more than 30 puzzle IDs are provided
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "puzzleIds"
+                      value: "Maximum 30 puzzle IDs are allowed in a single request. Received: 150"
+                missing_required_parameter:
+                  summary: Missing required parameter
+                  description: Error response when a required parameter is missing
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "series"
         '401':
           description: Unauthorized (invalid or missing API token)
         '403':
@@ -202,7 +244,7 @@ paths:
           schema:
             type: string
           description: Series identifier
-        - name: id
+        - name: puzzleId
           in: query
           required: false
           schema:
@@ -315,94 +357,259 @@ paths:
         - Auth
   /api/v1/plays:
     get:
-      summary: Get plays for a series, puzzle, or user
+      summary: Get plays for a series or specific puzzles
       description: |
-        Returns plays for a puzzle, a user in a series, or a user in a puzzle.
-        Response format varies by authentication method.
+        Retrieves detailed play-by-play analytics data for puzzles in a series or specific puzzle IDs.
+        Each play includes common fields (userId, startTime, endTime, etc.) along with puzzle type specific 
+        state details that contain relevant statistics and progress information.
+        
+        **Puzzle Type Support:**
+        - **Grid Games** (Crossword, Codeword, KrissKross, Sudoku): Box completion statistics
+        - **Quiz Games**: Question attempt statistics  
+        - **Word Search & Word Flower**: Word finding progress
+        - **Jigsaw**: Piece placement progress
+        
+        **Time Range Filtering:**
+        - Use `from` (inclusive) and/or `to` (inclusive) to filter plays by start time (`startedAt`, ISO 8601 format).
+        - If neither is provided, all plays are considered.
+        - If only `from` is provided, plays from that time onwards are considered.
+        - If only `to` is provided, plays up to that time are considered.
+        - If both are provided, plays between `from` and `to` (inclusive) are considered.
+       
+        **Pagination and Ordering:**
+        Results are paginated with the `limit` and `offset` query parameters and are ordered by **`startedAt` in descending order** (most recent starts first).
+        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the number of records to skip (in the descending order of `startedAt`) before starting to return results. To retrieve all the plays using this endpoint:
+        1. Call the endpoint with `offset=0`.  
+        2. Process the returned plays.  
+        3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.  
+        4. Repeat step 3 until a response returns `hasMore` field as false, indicating there are no more results.
+        
+        **Use Cases:**
+        - **Streak Computation:** Use `startedAt` and `updatedAt` combined with `playProgress` fields to compute user streaks. For example, calculate consecutive days a user has completed puzzles by checking if `startedAt` and `updatedAt` fall on the puzzle's publish date and the `playProgress.playState` indicates completion.
+        - **Puzzle Details:** To get detailed information about the puzzles corresponding to the returned play IDs, use the separate Puzzles API endpoint (`/api/v1/puzzles`) with the `puzzleIds` parameter containing the puzzle IDs from the plays response.
+ 
+       
+        **Examples:**
+        
+        **Single Puzzle Play for given User:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&puzzleIds=123ba400&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Accept: application/json'
+        ```
+        
+        **Multiple Puzzle Plays (Comma-separated puzzle ids) for a given User:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&puzzleIds=123ba400,46892ef6&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Accept: application/json'
+        ```
+        **All Plays for a given User for a given series:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Accept: application/json'
+        ```
       parameters:
         - name: series
           in: query
           required: true
           schema:
             type: string
-          description: Series identifier
-        - name: id
+          description: |
+            Series identifier for the puzzle collection.
+            Example: "crossword", "quiz", "jigsaw"
+        - name: puzzleIds
           in: query
           required: false
           schema:
             type: string
-          description: Puzzle ID (for puzzle-specific or user-in-puzzle queries)
-        - name: uid
+          description: |
+            Comma-separated list of puzzle IDs to filter plays.
+            If not provided, returns plays for all puzzles in the series.
+            Example: "daily-2024-01-15,daily-2024-01-16,daily-2024-01-17"
+        - name: userId
           in: query
           required: false
           schema:
             type: string
-          description: User ID (for user-in-series or user-in-puzzle queries)
+          description: |
+            User ID to filter plays for a specific user.
+            Example: "user123"
         - name: from
           in: query
           required: false
           schema:
             type: string
             format: date-time
-          description: Start time (ISO 8601)
+          description: |
+            Start time for play start time range (`startedAt`) in ISO 8601 format (UTC).
+            Example: "2024-01-01T00:00:00Z"
         - name: to
           in: query
           required: false
           schema:
             type: string
             format: date-time
-          description: End time (ISO 8601)
+          description: |
+            End time for play start time range (`startedAt`) in ISO 8601 format (UTC).
+            Example: "2024-01-31T23:59:59Z"
         - name: limit
           in: query
           required: false
           schema:
             type: integer
             default: 50
+            minimum: 1
             maximum: 100
-          description: Maximum number of plays to return
+          description: |
+            Maximum number of plays to return.
+            Default: 50, Maximum: 100
         - name: offset
           in: query
           required: false
           schema:
             type: integer
             default: 0
-          description: Number of plays to skip from the start
-        - name: playState
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Filter by play state
-        - name: verbose
-          in: query
-          required: false
-          schema:
-            type: boolean
-          description: Include verbose details
-        - name: getUserInfo
-          in: query
-          required: false
-          schema:
-            type: boolean
-          description: Include user info in response
+            minimum: 0
+          description: |
+            Number of plays to skip from the start of the result set.
+            Used for pagination.
       security:
         - bearerAuth: []
       tags:
         - Plays
       responses:
         '200':
-          description: List of plays and metadata
+          description: |
+            List of plays with puzzle type specific state details.
+            Each play includes common fields and a `playProgress` object containing
+            puzzle type specific statistics and progress information.
           content:
             application/json:
               schema:
-                oneOf:
-                  - $ref: '#/components/schemas/PlaysResponseAPI'
+                $ref: '#/components/schemas/GetPlaysResponse'
+              examples:
+                single_puzzle_plays:
+                  summary: Plays for a single puzzle
+                  description: |
+                    Example response showing plays for a specific puzzle with grid game progress.
+                    The `playProgress` object contains puzzle type specific details.
+                  value:
+                    status: 0
+                    plays:
+                      - userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                        puzzleId: "123ba400"
+                        series: "pm"
+                        puzzleType: "crossword"
+                        startedAt: "2023-09-06T10:21:13Z"
+                        updatedAt: "2023-09-06T10:31:00Z"
+                        playProgress:
+                          totalBoxes: 0
+                          filledBoxes: 0
+                          playState: "inProgress"
+                        score: 0
+                        screenTimeSeconds: 308
+                    hasMore: false
+                multiple_puzzle_plays:
+                  summary: Plays for multiple puzzles
+                  description: |
+                    Example response showing plays for multiple puzzles with different puzzle types.
+                    Each play has puzzle type specific progress information.
+                  value:
+                    status: 0
+                    plays:
+                      - userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                        puzzleId: "123ba400"
+                        series: "pm"
+                        puzzleType: "crossword"
+                        startedAt: "2023-09-06T10:21:13Z"
+                        updatedAt: "2023-09-06T10:31:00Z"
+                        playProgress:
+                          totalBoxes: 100
+                          filledBoxes: 75
+                          playState: "inProgress"
+                        score: 75
+                        screenTimeSeconds: 308
+                      - userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                        puzzleId: "46892ef6"
+                        series: "pm"
+                        puzzleType: "quiz"
+                        startedAt: "2023-08-01T06:39:41Z"
+                        updatedAt: "2023-08-02T08:22:00Z"
+                        playProgress:
+                          attemptedQuestions: 8
+                          playState: "completed"
+                        score: 85
+                        screenTimeSeconds: 24
+                      - userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                        puzzleId: "789abc12"
+                        series: "pm"
+                        puzzleType: "wordsearch"
+                        startedAt: "2023-08-03T14:15:30Z"
+                        updatedAt: "2023-08-03T14:45:15Z"
+                        playProgress:
+                          totalWords: 20
+                          wordsFound: 15
+                          playState: "inProgress"
+                        score: 75
+                        screenTimeSeconds: 1785
+                    hasMore: false
         '400':
           description: Bad request (missing/invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_required_parameter:
+                  summary: Missing required parameter
+                  description: Error response when a required parameter is missing
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "series"
         '401':
           description: Unauthorized (invalid or missing API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired_token:
+                  summary: Expired token
+                  description: Error response when the API token has expired
+                  value:
+                    status: 1
+                    errorCode: 6
+                    errorMessage: "Token expired"
+                    errorDetails:
+                      type: "EXPIRED_TOKEN"
+                invalid_token:
+                  summary: Invalid token
+                  description: Error response when the API token is invalid
+                  value:
+                    status: 1
+                    errorCode: 5
+                    errorMessage: "Invalid token"
+                    errorDetails:
+                      type: "INVALID_TOKEN"
         '403':
           description: Forbidden (no access to series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_access_to_series:
+                  summary: No access to series
+                  description: Error response when user doesn't have access to the requested series
+                  value:
+                    status: 1
+                    errorCode: 8
+                    errorMessage: "No access to series"
+                    errorDetails:
+                      series: "pm"
+                      type: "UNAUTHORIZED_ACCESS_TO_SET"
 components:
   securitySchemes:
     bearerAuth:
@@ -413,6 +620,157 @@ components:
         Enter the JWT token obtained from the `/api/v1/token` endpoint.
         **Note:** You do not need to prefix the token with "Bearer ".
   schemas:
+    GetPlaysResponse:
+      type: object
+      description: Response containing list of plays with puzzle type specific state details
+      properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
+        plays:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayResponse'
+          description: List of plays with puzzle type specific state details
+        hasMore:
+          type: boolean
+          description: Indicates if there are more plays available (pagination)
+    PlayResponse:
+      type: object
+      description: Individual play data with puzzle type specific progress information
+      properties:
+        userId:
+          type: string
+          description: Unique user identifier
+          example: "user123"
+        puzzleId:
+          type: string
+          description: Puzzle identifier
+          example: "daily-2024-01-15"
+        series:
+          type: string
+          description: Series name
+          example: "demo-api"
+        puzzleType:
+          type: string
+          enum: [crossword, codeword, krisskross, sudoku, quiz, wordsearch, wordflower, jigsaw]
+          description: Puzzle type
+          example: "crossword"
+        startedAt:
+          type: string
+          format: date-time
+          description: Play start time in ISO 8601 UTC format
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Time when the play was last updated, in ISO 8601 UTC format.
+          example: "2024-01-15T11:15:00Z"
+        playProgress:
+          oneOf:
+            - $ref: '#/components/schemas/GridGamePlayProgress'
+            - $ref: '#/components/schemas/QuizPlayProgress'
+            - $ref: '#/components/schemas/WordSearchPlayProgress'
+            - $ref: '#/components/schemas/JigsawPlayProgress'
+          description: Puzzle type specific play state details and progress information
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Backend computed score for the play
+          example: 85
+        screenTimeSeconds:
+          type: integer
+          minimum: 0
+          description: Screen time spent on puzzle in seconds on the frontend 
+          example: 2700
+    PlayState:
+      type: string
+      enum: [inProgress, completed]
+      description: Current state of the play
+    GridGamePlayProgress:
+      type: object
+      description: Play progress details for grid-based games (Crossword, Codeword, KrissKross, Sudoku)
+      properties:
+        playState:
+          $ref: '#/components/schemas/PlayState'
+        totalBoxes:
+          type: integer
+          minimum: 0
+          description: Total boxes that need to be filled 
+          example: 100
+        filledBoxes:
+          type: integer
+          minimum: 0
+          description: Boxes filled by user (correct + incorrect)
+          example: 75
+    QuizPlayProgress:
+      type: object
+      description: Play progress details for quiz games
+      properties:
+        playState:
+          $ref: '#/components/schemas/PlayState'
+        attemptedQuestions:
+          type: integer
+          minimum: 0
+          description: Number of questions attempted by the user. Total number of questions can be read using Puzzles API endpoint.
+          example: 8
+    WordSearchPlayProgress:
+      type: object
+      description: Play progress details for word search and word flower games
+      properties:
+        playState:
+          $ref: '#/components/schemas/PlayState'
+        totalWords:
+          type: integer
+          minimum: 0
+          description: Total words to find
+          example: 20
+        wordsFound:
+          type: integer
+          minimum: 0
+          description: Number of words found by the user
+          example: 15
+    JigsawPlayProgress:
+      type: object
+      description: Play progress details for jigsaw puzzles
+      properties:
+        playState:
+          $ref: '#/components/schemas/PlayState'
+        totalPieces:
+          type: integer
+          minimum: 0
+          description: Total pieces in the puzzle
+          example: 100
+        remainingPieces:
+          type: integer
+          minimum: 0
+          description: Number of pieces remaining to be placed
+          example: 25
+    ErrorResponse:
+      type: object
+      description: Standard error response format for API errors
+      properties:
+        status:
+          type: integer
+          description: Error status code (1 for errors)
+          example: 1
+        errorCode:
+          type: integer
+          description: Specific error code for different error types
+          example: 6
+        errorMessage:
+          type: string
+          description: Human-readable error message
+          example: "Token expired"
+        errorDetails:
+          type: object
+          description: Additional error details specific to the error type
+          additionalProperties: true
+          example:
+            type: "EXPIRED_TOKEN"
+            paramName: "series"
     PlaysResponseAPI:
       type: object
       properties:
@@ -443,38 +801,19 @@ components:
           type: string
         score:
           type: integer
-    LeaderboardResult:
-      type: object
-      properties:
-        leaderboard:
-          type: object
-          properties:
-            id:
-              type: string
-            set:
-              type: string
-            title:
-              type: string
-            useServerTime:
-              type: boolean
-            plays:
-              type: array
-              items:
-                $ref: '#/components/schemas/LeaderboardPlay'
-    LeaderboardPlay:
-      type: object
-      properties:
-        userId:
-          type: string
-        score:
-          type: integer
-        time:
-          type: integer
     PuzzleResponseAPI:
       type: object
+      description: Response containing puzzle metadata organized by series
       properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
         seriesToPuzzleMetadata:
           type: object
+          description: |
+            Map of series names to arrays of puzzle metadata.
+            Each series contains puzzles with type-specific metadata fields.
           additionalProperties:
             type: array
             items:
@@ -482,42 +821,86 @@ components:
                 - $ref: '#/components/schemas/GridGameMetadata'
                 - $ref: '#/components/schemas/QuizGameMetadata'
                 - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
+          example:
+            api-demo-crossword:
+              - title: "Daily Crossword"
+                author: "Jane Smith"
+                puzzleId: "82e56966"
+                puzzleType: "CROSSWORD"
+                publicationTime: 1701286140000
+                publicationTimeZone: "America/New_York"
+                thumbnailURL: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
+                gridWidth: 15
+                gridHeight: 15
+                numWords: 78
+        hasMore:
+          type: boolean
+          description: Indicates if there are more puzzles available. When true, use limit and offset parameters to fetch the next page of results.
     BaseFormattedPuzzleMetadata:
       type: object
+      description: Base puzzle metadata containing common fields for all puzzle types
       properties:
         title:
           type: string
+          description: Puzzle title
+          example: "Daily Crossword"
         author:
           type: string
+          description: Puzzle author/constructor name
+          example: "Jane Smith"
         puzzleId:
           type: string
+          description: Unique puzzle identifier
+          example: "82e56966"
         puzzleType:
           type: string
+          enum: [CROSSWORD, CODEWORD, KRISSKROSS, SUDOKU, QUIZ, WORDSEARCH, WORDFLOWER, JIGSAW]
+          description: Type of puzzle
+          example: "CROSSWORD"
         publicationTime:
           type: integer
+          description: Publication timestamp in milliseconds since epoch (UTC)
+          example: 1701286140000
         publicationTimeZone:
           type: string
+          description: Timezone of the publication time
+          example: "America/New_York"
         thumbnailURL:
           type: string
+          description: URL to the puzzle thumbnail image
+          example: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
     GridGameMetadata:
       allOf:
         - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
         - type: object
+          description: Additional metadata for grid-based games (Crossword, Codeword, KrissKross, Sudoku)
           properties:
             gridWidth:
               type: integer
-              description: The width of the puzzle grid.
+              minimum: 1
+              description: The width of the puzzle grid in cells
+              example: 15
             gridHeight:
               type: integer
-              description: The height of the puzzle grid.
+              minimum: 1
+              description: The height of the puzzle grid in cells
+              example: 15
+            numWords:
+              type: integer
+              minimum: 0
+              description: The number of words/clues in the puzzle
+              example: 78
     QuizGameMetadata:
       allOf:
         - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
         - type: object
+          description: Additional metadata for quiz games
           properties:
             numOfQuestions:
               type: integer
-              description: The number of questions in the quiz.
+              minimum: 1
+              description: The number of questions in the quiz
+              example: 10
     PuzzleMetadata:
       type: object
       properties:
