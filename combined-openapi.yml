@@ -24,6 +24,8 @@ tags:
     x-displayName: Puzzles
   - name: Plays
     x-displayName: Plays
+  - name: Series
+    x-displayName: Series
   - name: Analytics
     x-displayName: Analytics
 paths:
@@ -231,6 +233,125 @@ paths:
         - bearerAuth: []
       tags:
         - Puzzles
+  /api/v1/series:
+    get:
+      summary: Retrieve series information
+      description: |
+        Retrieves series metadata for the authenticated account. The endpoint supports three operation modes:
+        
+        **1. List All Series:**
+        Returns a complete list of all series associated with the authenticated account.
+        - Omit the `series` parameter.
+        - Response contains an array of all series with their metadata.
+        
+        **2. Get Specific Series:**
+        Returns metadata for a specified series if it exists in the account.
+        - Provide the `series` parameter with a valid series identifier.
+        - Response contains a single series object with name and displayName.
+        
+        **3. Non-Existent Series:**
+        When an invalid or non-existent series identifier is provided, the endpoint returns an empty list with HTTP 200 status.
+        - Provide the `series` parameter with an invalid identifier.
+        - Response contains an empty array.
+        - This is not treated as an error condition; the endpoint always returns HTTP 200.
+        
+        **Use Cases:**
+        - **Series Discovery:** Browse all available series in an account
+        - **Series Validation:** Verify if a specific series exists in an account
+        - **Metadata Retrieval:** Get display names and identifiers for series management
+        
+        **Examples:**
+        
+        **List All Series:**
+        ```bash
+        curl -L 'https://staging.amuselabs.com/api-beta/api/v1/series' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+        
+        **Get Specific Series:**
+        ```bash
+        curl -L 'https://staging.amuselabs.com/api-beta/api/v1/series?series=api-demo-crossword' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Series identifier. When omitted, all series are returned. When provided, returns the specified series if it exists, otherwise returns an empty list.
+            Example: "api-demo-crossword", "demo-quiz", "jigsaw-series"
+      responses:
+        '200':
+          description: |
+            Successful response. The endpoint always returns HTTP 200 status code. The response body contains a list of
+            series objects. When the series parameter is omitted, the list contains all series for the account. When a
+            valid series identifier is provided, the list contains a single series object. When an invalid series
+            identifier is provided, the list is empty.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeriesResponseAPI'
+              examples:
+                all_series:
+                  summary: List of all series
+                  description: |
+                    Example response showing all series in the account.
+                  value:
+                    status: 0
+                    seriesList:
+                      - name: "api-demo-crossword"
+                        displayName: "API Demo Crossword"
+                        status: "ACTIVE"
+                      - name: "demo-quiz"
+                        displayName: "Demo Quiz Series"
+                        status: "ACTIVE"
+                      - name: "jigsaw-series"
+                        displayName: "Jigsaw Puzzle Collection"
+                        status: "ACTIVE"
+                specific_series:
+                  summary: Specific series request
+                  description: |
+                    Example response showing a specific series when a valid series identifier is provided.
+                  value:
+                    status: 0
+                    seriesList:
+                      - name: "api-demo-crossword"
+                        displayName: "API Demo Crossword"
+                        status: "ACTIVE"
+                non_existent_series:
+                  summary: Non-existent series request
+                  description: |
+                    Example response when an invalid or non-existent series identifier is provided.
+                    The endpoint returns an empty list with HTTP 200 status.
+                  value:
+                    status: 0
+                    seriesList: []
+        '400':
+          description: Bad request (missing/invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (invalid or missing API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (no access to account or series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - bearerAuth: []
+      tags:
+        - Series
   /api/v1/reporting:
     get:
       summary: Get series or puzzle specific aggregate metrics
@@ -941,6 +1062,40 @@ components:
           type: string
         expires_at_seconds:
           type: integer
+    SeriesResponseAPI:
+      type: object
+      description: Response containing series information
+      properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
+        seriesList:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeriesInfo'
+          description: |
+            List of series objects. Contains all series when series parameter is omitted, a single series when a valid
+            identifier is provided, or an empty list when an invalid identifier is provided.
+    SeriesInfo:
+      type: object
+      description: Series metadata containing identifier, display name, and status
+      properties:
+        name:
+          type: string
+          description: Series identifier
+          example: "api-demo-crossword"
+        displayName:
+          type: string
+          description: Display name of the series
+          example: "API Demo Crossword"
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - DELETED
+          description: Status of the series
+          example: "ACTIVE"
 x-tagGroups:
   - name: Auth
     tags:
@@ -951,6 +1106,9 @@ x-tagGroups:
   - name: Plays
     tags:
       - Plays
+  - name: Series
+    tags:
+      - Series
   - name: Analytics
     tags:
       - Analytics
