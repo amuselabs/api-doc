@@ -48,6 +48,18 @@ const sidebar: SidebarsConfig = {
         },
       ],
     },
+    {
+      type: "category",
+      label: "Series",
+      items: [
+        {
+          type: "doc",
+          id: "retrieve-series-information",
+          label: "Retrieve series information",
+          className: "api-method get",
+        },
+      ],
+    },
   ],
 };
 
