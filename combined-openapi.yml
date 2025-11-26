@@ -16,7 +16,7 @@ info:
     **Metering**
     We are in the process of introducing usage-based metering for this API suite. While metering is not currently active, we encourage you to design your integration with this in mind. Once metering is enabled, you may be subject to usage limits and billing based on your API consumption.
 servers:
-  - url: https://staging.amuselabs.com/api-beta
+  - url: https://sandbox.amuselabs.com/pmm
 tags:
   - name: Auth
     x-displayName: Auth
@@ -264,14 +264,14 @@ paths:
         
         **List All Series:**
         ```bash
-        curl -L 'https://staging.amuselabs.com/api-beta/api/v1/series' \
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
         
         **Get Specific Series:**
         ```bash
-        curl -L 'https://staging.amuselabs.com/api-beta/api/v1/series?series=api-demo-crossword' \
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
