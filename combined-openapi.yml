@@ -478,7 +478,7 @@ paths:
         - Auth
   /api/v1/plays:
     get:
-      summary: Get plays for a series or specific puzzles for a given user
+      summary: Get plays for a given user
       description: |
         Retrieves detailed play-by-play analytics data for puzzles in a series or specific puzzle IDs for a given user.
         Each play includes common fields (userId, startTime, endTime, etc.) along with puzzle type specific 
