@@ -478,9 +478,9 @@ paths:
         - Auth
   /api/v1/plays:
     get:
-      summary: Get plays for a series or specific puzzles
+      summary: Get plays for a series or specific puzzles for a given user
       description: |
-        Retrieves detailed play-by-play analytics data for puzzles in a series or specific puzzle IDs.
+        Retrieves detailed play-by-play analytics data for puzzles in a series or specific puzzle IDs for a given user.
         Each play includes common fields (userId, startTime, endTime, etc.) along with puzzle type specific 
         state details that contain relevant statistics and progress information.
         
@@ -537,6 +537,15 @@ paths:
           description: |
             Series identifier for the puzzle collection.
             Example: "crossword", "quiz", "jigsaw"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            User ID to filter plays for a specific user.
+            Compulsory parameter.
+            Example: "user123"
         - name: puzzleIds
           in: query
           required: false
@@ -546,14 +555,6 @@ paths:
             Comma-separated list of puzzle IDs to filter plays.
             If not provided, returns plays for all puzzles in the series.
             Example: "daily-2024-01-15,daily-2024-01-16,daily-2024-01-17"
-        - name: userId
-          in: query
-          required: false
-          schema:
-            type: string
-          description: |
-            User ID to filter plays for a specific user.
-            Example: "user123"
         - name: from
           in: query
           required: false
@@ -562,6 +563,7 @@ paths:
             format: date-time
           description: |
             Start time for play start time range (`startedAt`) in ISO 8601 format (UTC).
+            Defaults to 2013-01-01T00:00:00Z if not specified.
             Example: "2024-01-01T00:00:00Z"
         - name: to
           in: query
