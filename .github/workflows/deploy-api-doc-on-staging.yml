@@ -43,7 +43,16 @@ jobs:
           echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H staging.amuselabs.com >> ~/.ssh/known_hosts
-          which rsync
-          ls -la ~/.ssh
-          echo $PATH
-          rsync -avz --delete build/* pmm@staging.amuselabs.com:/home/pmm/pmm-deploy/tomcat/webapps/ROOT/api-docs
+
+          # Create SSH config to restrict key usage
+          cat >> ~/.ssh/config <<EOF
+          Host staging.amuselabs.com
+          IdentityFile ~/.ssh/id_rsa
+          IdentitiesOnly yes
+          StrictHostKeyChecking no
+          EOF
+          chmod 600 ~/.ssh/config
+
+          rsync -avz --delete \
+          -e "ssh -i ~/.ssh/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" \
+          build/* pmm@staging.amuselabs.com:/home/pmm/pmm-deploy/tomcat/webapps/ROOT/api-docs
