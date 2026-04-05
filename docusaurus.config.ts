@@ -18,17 +18,14 @@ const config: Config = {
   },
 
   // Set the production url of your site here
-  url: 'https://amuselabs.github.io',
+  url: 'https://staging.amuselabs.com',
   // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/api-doc/',
 
   // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'amuselabs', // Usually your GitHub org/user name.
-  projectName: 'api-doc', // Usually your repo name.
+  organizationName: 'amuselabs',
+  projectName: 'api-doc',
   deploymentBranch: 'gh-pages',
-  trailingSlash: false,
 
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
