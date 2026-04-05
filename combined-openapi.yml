@@ -739,40 +739,37 @@ paths:
     get:
       summary: Retrieve user-collected fields for a user
       description: |
-        Retrieves user-submitted field data (name, email, mobile, etc.) for a specific user within a series.
+        Retrieves user-submitted field data for a specific user within a series.
         Fields are returned as key-value pairs in a `fields` object using generic keys (`field_1` through `field_6`).
 
-        **Field Key Mapping:**
-        | Key       | Represents |
-        |-----------|------------|
-        | `field_1` | Name       |
-        | `field_2` | Email      |
-        | `field_3` | Mobile     |
-        | `field_4` | Facebook   |
-        | `field_5` | Google     |
-        | `field_6` | Twitter    |
+        **What are user fields?**
+        User fields store arbitrary per-user information within a series. Common use cases include:
+        - **Profile information:** Name, email, mobile — collected when a user starts playing puzzles in a series.
+        - **Puzzle-specific responses:** Clue answers, feedback, or other data submitted by a user for a specific puzzle.
+        - **Custom metadata:** Any key-value data a publisher wants to associate with a user in a series.
 
-        **Puzzle-Scoped vs Puzzle-Agnostic Fields:**
-        User fields can be stored at two granularities:
-        - **Puzzle-specific:** Tied to a particular `puzzleId`. Set when the user submits info while playing a specific puzzle.
-        - **Puzzle-agnostic:** Not tied to any puzzle (stored with `puzzleId = ALL_PUZZLES`). Set when fields are submitted without puzzle context.
+        Fields can be stored at two granularities:
+        - **Puzzle-agnostic:** Information that doesn't change across puzzles — e.g. the user's name or email.
+          Stored without a `puzzleId` (applies across all puzzles in the series).
+        - **Puzzle-specific:** Information tied to a particular puzzle — e.g. a clue answer submitted for that puzzle.
+          Stored with a `puzzleId`.
+
+        **Field Keys:**
+        Fields use generic keys `field_1` through `field_6`. The meaning of each key is defined by the
+        series configuration. For example, a series might use `field_1` for name, `field_2` for email,
+        and `field_3` for mobile — but another series might use `field_1` for a team name and `field_2`
+        for a clue answer.
 
         **Behaviour based on `puzzleId` parameter:**
-        - **`puzzleId` provided:** Returns only fields set for that exact puzzle. Returns empty `fields` if none exist for that puzzle, even if fields exist for other puzzles or puzzle-agnostically.
-        - **`puzzleId` omitted:** Behaviour is subject to a pending design decision and may change. See note below.
-
-        > **Note:** The response structure when `puzzleId` is omitted is a pending design decision.
-        > When fields come from multiple puzzles, a single `puzzleId` in the response does not accurately represent the source.
-        > This behaviour may be refined in a future version.
+        - **`puzzleId` provided:** Returns only fields set for that exact puzzle. Returns empty `fields`
+          if none exist for that puzzle, even if fields exist for other puzzles or puzzle-agnostically.
+        - **`puzzleId` omitted:** Returns the latest field values across all puzzles in the series,
+          regardless of which puzzle they were set for.
 
         **Response:**
-        All fields that have been set are returned. Fields that have never been set are omitted from the response.
-        The response always returns HTTP 200 with `status: 0`, even when no fields exist — an empty `fields` object indicates no data, not an error.
-
-        **Use Cases:**
-        - **User Profile Display:** Retrieve stored user info to pre-populate forms on subsequent visits
-        - **Analytics Enrichment:** Correlate play data with user-submitted information
-        - **Puzzle-Specific Data:** Retrieve user info submitted during a specific puzzle session
+        All fields that have been set are returned. Fields that have never been set are omitted.
+        The response always returns HTTP 200 with `status: 0`, even when no fields exist — an empty
+        `fields` object indicates no data, not an error.
 
         **Examples:**
 
@@ -829,41 +826,25 @@ paths:
                 with_fields:
                   summary: User with fields set
                   description: |
-                    Response when the user has submitted name and email for the requested puzzle.
+                    Response when the user has submitted fields for the requested scope.
                     Only fields that have been set are included.
                   value:
                     status: 0
                     userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
                     series: "demo-crossword"
-                    puzzleId: "daily-2024-01-15"
                     fields:
                       field_1: "Jane Doe"
                       field_2: "jane@example.com"
                 no_fields:
                   summary: User with no fields set
                   description: |
-                    Response when the user exists but has not submitted any fields for the requested puzzle.
+                    Response when the user exists but has not submitted any fields in this scope.
                     The `fields` object is empty but the request succeeds with status 0.
                   value:
                     status: 0
                     userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
                     series: "demo-crossword"
-                    puzzleId: "daily-2024-01-15"
                     fields: {}
-                without_puzzle_id:
-                  summary: User fields without puzzle scope
-                  description: |
-                    Response when puzzleId is omitted. Returns the latest field values
-                    across all puzzles in the series. The `puzzleId` field is null in the response.
-                  value:
-                    status: 0
-                    userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
-                    series: "demo-crossword"
-                    puzzleId: null
-                    fields:
-                      field_1: "Jane Doe"
-                      field_2: "jane@example.com"
-                      field_3: "+14155550100"
         '400':
           description: Bad request (missing or invalid parameters)
           content:
@@ -931,61 +912,66 @@ paths:
         **POST and PATCH have identical behaviour.** Both perform an upsert. Two methods are exposed
         for caller convenience — use whichever is semantically clearer in your context.
 
+        **What are user fields?**
+        User fields store arbitrary per-user information within a series. Common use cases include:
+        - **Profile information:** Name, email, mobile — collected when a user starts playing puzzles in a series.
+        - **Puzzle-specific responses:** Clue answers, feedback, or other data submitted by a user for a specific puzzle.
+        - **Custom metadata:** Any key-value data a publisher wants to associate with a user in a series.
+
+        Fields can be stored at two granularities:
+        - **Puzzle-agnostic:** Information that doesn't change across puzzles (e.g. name, email).
+          Stored without a `puzzleId`.
+        - **Puzzle-specific:** Information tied to a particular puzzle (e.g. clue answer, quiz response).
+          Stored with a `puzzleId`.
+
+        **Field Keys:**
+        Fields use generic keys `field_1` through `field_6`. The meaning of each key is defined by the
+        series configuration. Validation rules for each field are also series-configurable.
+
+        | Key       | Default Validation                              |
+        |-----------|------------------------------------------------|
+        | `field_1` | Required text (series-configurable regex)       |
+        | `field_2` | Email format (series-configurable regex)        |
+        | `field_3` | Numeric format (series-configurable regex)      |
+        | `field_4` | No default validation                           |
+        | `field_5` | No default validation                           |
+        | `field_6` | No default validation                           |
+
         **Request Body:**
         The `fields` object contains only the fields to create or update. Fields not included in the request are left untouched.
-        - To **set or update** a field: include it with a string value.
-        - Fields **not included** in the body: remain unchanged (not cleared, not deleted).
 
         > **Important:** There is no way to delete individual fields via this endpoint.
         > Fields can only be cleared when the entire series is deboarded.
-
-        **Field Key Mapping:**
-        | Key       | Represents | Validation                                     |
-        |-----------|------------|------------------------------------------------|
-        | `field_1` | Name       | Required text (series-configurable regex)       |
-        | `field_2` | Email      | Email format (series-configurable regex)        |
-        | `field_3` | Mobile     | Numeric format (series-configurable regex)      |
-        | `field_4` | Facebook   | No default validation                           |
-        | `field_5` | Google     | No default validation                           |
-        | `field_6` | Twitter    | No default validation                           |
-
-        Validation rules are configured per-series in player settings. If a field value fails its
-        series-specific validation, the request is rejected with a 400 error identifying the field and rule.
 
         **Puzzle Scope:**
         - **`puzzleId` provided:** Fields are stored scoped to that puzzle.
         - **`puzzleId` omitted:** Fields are stored as puzzle-agnostic (applies across all puzzles in the series).
 
         **Response:**
-        A success response with an empty body (`status: 0`). The response does not echo back the saved fields.
+        A success response with `status: 0`. The response does not echo back the saved fields.
 
         **Side Effects:**
         - Field values are persisted immediately to the database.
         - If the same field already exists for this (userId, series, puzzleId) combination, its value is overwritten.
         - No notification or event is triggered.
 
-        **Use Cases:**
-        - **User Registration:** Collect name and email when a user starts playing a puzzle
-        - **Profile Update:** Update user contact information during a puzzle session
-        - **Publisher Data Sync:** Set user fields programmatically from an external system
-
         **Examples:**
 
-        **Set name and email for a specific puzzle:**
+        **Set profile info (puzzle-agnostic):**
         ```bash
-        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Content-Type: application/json' \
         -d '{"fields": {"field_1": "Jane Doe", "field_2": "jane@example.com"}}'
         ```
 
-        **Set fields without puzzle scope (puzzle-agnostic):**
+        **Set puzzle-specific data (e.g. clue answer):**
         ```bash
-        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Content-Type: application/json' \
-        -d '{"fields": {"field_1": "Jane Doe", "field_2": "jane@example.com", "field_3": "+14155550100"}}'
-        ```
+        -d '{"fields": {"field_4": "ACROSS-1-ANSWER", "field_5": "ACROSS-2-ANSWER"}}'
+        ```    
       parameters:
         - name: series
           in: query
@@ -1620,7 +1606,7 @@ components:
     UserFieldsGetResponse:
       type: object
       description: |
-        Response containing user fields for the requested user, series, and optional puzzle scope.
+        Response containing user fields for the requested user and series.
         All fields that have been set are returned. Fields never set are omitted (not returned as null).
       properties:
         status:
@@ -1635,43 +1621,33 @@ components:
           type: string
           description: "Echoed series identifier from the request."
           example: "demo-crossword"
-        puzzleId:
-          type: string
-          nullable: true
-          description: |
-            Echoed puzzle identifier from the request. Null when the request did not include a puzzleId.
-          example: "daily-2024-01-15"
         fields:
           type: object
           description: |
             Key-value pairs of user fields that have been set. Only includes fields with values.
             An empty object means no fields have been set for this user in this scope.
+            The meaning of each key is defined by the series configuration.
           properties:
             field_1:
               type: string
-              description: "Name"
               example: "Jane Doe"
             field_2:
               type: string
-              description: "Email"
               example: "jane@example.com"
             field_3:
               type: string
-              description: "Mobile"
               example: "+14155550100"
             field_4:
               type: string
-              description: "Facebook"
-              example: "jane.doe.fb"
+              example: "team-alpha"
             field_5:
               type: string
-              description: "Google"
-              example: "jane.doe.google"
+              example: "custom-value"
             field_6:
               type: string
-              description: "Twitter"
-              example: "@janedoe"
+              example: "another-value"
           additionalProperties: false
+    
     UserFieldsPostResponse:
       type: object
       description: |
