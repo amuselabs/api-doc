@@ -60,6 +60,30 @@ const sidebar: SidebarsConfig = {
         },
       ],
     },
+    {
+      type: "category",
+      label: "User Fields",
+      items: [
+        {
+          type: "doc",
+          id: "retrieve-user-collected-fields-for-a-user",
+          label: "Retrieve user-collected fields for a user",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "create-or-update-user-collected-fields",
+          label: "Create or update user-collected fields",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "update-user-collected-fields",
+          label: "Update user-collected fields",
+          className: "api-method patch",
+        },
+      ],
+    },
   ],
 };
 
