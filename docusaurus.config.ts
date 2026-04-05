@@ -21,7 +21,7 @@ const config: Config = {
   url: 'https://amuselabs.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/api-doc',
+  baseUrl: '/api-doc/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
