@@ -928,20 +928,10 @@ paths:
         Fields use generic keys `field_1` through `field_6`. The meaning of each key is defined by the
         series configuration. Validation rules for each field are also series-configurable.
 
-        | Key       | Default Validation                              |
-        |-----------|------------------------------------------------|
-        | `field_1` | Required text (series-configurable regex)       |
-        | `field_2` | Email format (series-configurable regex)        |
-        | `field_3` | Numeric format (series-configurable regex)      |
-        | `field_4` | No default validation                           |
-        | `field_5` | No default validation                           |
-        | `field_6` | No default validation                           |
-
         **Request Body:**
         The `fields` object contains only the fields to create or update. Fields not included in the request are left untouched.
 
-        > **Important:** There is no way to delete individual fields via this endpoint.
-        > Fields can only be cleared when the entire series is deboarded.
+        > **Important:** The field value can be set to `null` to unset the field.
 
         **Puzzle Scope:**
         - **`puzzleId` provided:** Fields are stored scoped to that puzzle.
