@@ -44,6 +44,19 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H staging.amuselabs.com >> ~/.ssh/known_hosts
 
+          # DEBUG 1: Check key was written correctly
+          echo "--- Key first line ---"
+          head -1 ~/.ssh/id_rsa
+          echo "--- Key last line ---"
+          tail -1 ~/.ssh/id_rsa
+          
+          # DEBUG 2: Test raw SSH connection before rsync
+          ssh -vvv \
+                -i ~/.ssh/id_rsa \
+                -o IdentitiesOnly=yes \
+                -o StrictHostKeyChecking=no \
+                -o BatchMode=yes \
+                pmm@staging.amuselabs.com echo "SSH connection OK"
           # Create SSH config to restrict key usage
           cat >> ~/.ssh/config <<EOF
           Host staging.amuselabs.com
