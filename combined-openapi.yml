@@ -28,6 +28,8 @@ tags:
     x-displayName: Series
   - name: Analytics
     x-displayName: Analytics
+  - name: User Fields
+    x-displayName: User Fields
 paths:
   /api/v1/puzzles:
     get:
@@ -733,6 +735,484 @@ paths:
                     errorDetails:
                       series: "pm"
                       type: "UNAUTHORIZED_ACCESS_TO_SET"
+  /api/v1/user-fields:
+    get:
+      summary: Retrieve user-collected fields for a user
+      description: |
+        Retrieves user-submitted field data (name, email, mobile, etc.) for a specific user within a series.
+        Fields are returned as key-value pairs in a `fields` object using generic keys (`field_1` through `field_6`).
+
+        **Field Key Mapping:**
+        | Key       | Represents |
+        |-----------|------------|
+        | `field_1` | Name       |
+        | `field_2` | Email      |
+        | `field_3` | Mobile     |
+        | `field_4` | Facebook   |
+        | `field_5` | Google     |
+        | `field_6` | Twitter    |
+
+        **Puzzle-Scoped vs Puzzle-Agnostic Fields:**
+        User fields can be stored at two granularities:
+        - **Puzzle-specific:** Tied to a particular `puzzleId`. Set when the user submits info while playing a specific puzzle.
+        - **Puzzle-agnostic:** Not tied to any puzzle (stored with `puzzleId = ALL_PUZZLES`). Set when fields are submitted without puzzle context.
+
+        **Behaviour based on `puzzleId` parameter:**
+        - **`puzzleId` provided:** Returns only fields set for that exact puzzle. Returns empty `fields` if none exist for that puzzle, even if fields exist for other puzzles or puzzle-agnostically.
+        - **`puzzleId` omitted:** Behaviour is subject to a pending design decision and may change. See note below.
+
+        > **Note:** The response structure when `puzzleId` is omitted is a pending design decision.
+        > When fields come from multiple puzzles, a single `puzzleId` in the response does not accurately represent the source.
+        > This behaviour may be refined in a future version.
+
+        **Response:**
+        All fields that have been set are returned. Fields that have never been set are omitted from the response.
+        The response always returns HTTP 200 with `status: 0`, even when no fields exist — an empty `fields` object indicates no data, not an error.
+
+        **Use Cases:**
+        - **User Profile Display:** Retrieve stored user info to pre-populate forms on subsequent visits
+        - **Analytics Enrichment:** Correlate play data with user-submitted information
+        - **Puzzle-Specific Data:** Retrieve user info submitted during a specific puzzle session
+
+        **Examples:**
+
+        **Get user fields for a specific puzzle:**
+        ```bash
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+
+        **Get user fields across all puzzles:**
+        ```bash
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier that scopes the user fields.
+            Example: "demo-crossword", "quiz-series"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Unique user identifier (assigned via browser cookie on first visit).
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        - name: puzzleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Puzzle identifier to retrieve fields for a specific puzzle session.
+            When provided, returns only fields set for that exact puzzle.
+            When omitted, returns the latest field values across all puzzles in the series.
+            Example: "daily-2024-01-15"
+      responses:
+        '200':
+          description: |
+            User fields retrieved successfully. Returns all fields that have been set.
+            An empty `fields` object means no data exists — this is not an error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserFieldsGetResponse'
+              examples:
+                with_fields:
+                  summary: User with fields set
+                  description: |
+                    Response when the user has submitted name and email for the requested puzzle.
+                    Only fields that have been set are included.
+                  value:
+                    status: 0
+                    userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                    series: "demo-crossword"
+                    puzzleId: "daily-2024-01-15"
+                    fields:
+                      field_1: "Jane Doe"
+                      field_2: "jane@example.com"
+                no_fields:
+                  summary: User with no fields set
+                  description: |
+                    Response when the user exists but has not submitted any fields for the requested puzzle.
+                    The `fields` object is empty but the request succeeds with status 0.
+                  value:
+                    status: 0
+                    userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                    series: "demo-crossword"
+                    puzzleId: "daily-2024-01-15"
+                    fields: {}
+                without_puzzle_id:
+                  summary: User fields without puzzle scope
+                  description: |
+                    Response when puzzleId is omitted. Returns the latest field values
+                    across all puzzles in the series. The `puzzleId` field is null in the response.
+                  value:
+                    status: 0
+                    userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                    series: "demo-crossword"
+                    puzzleId: null
+                    fields:
+                      field_1: "Jane Doe"
+                      field_2: "jane@example.com"
+                      field_3: "+14155550100"
+        '400':
+          description: Bad request (missing or invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_series:
+                  summary: Missing required parameter
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "series"
+                missing_user_id:
+                  summary: Missing userId
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "userId"
+        '401':
+          description: Unauthorized (missing or invalid API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired_token:
+                  summary: Expired token
+                  value:
+                    status: 1
+                    errorCode: 6
+                    errorMessage: "Token expired"
+                    errorDetails:
+                      type: "EXPIRED_TOKEN"
+        '403':
+          description: Forbidden (no read access to series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_access:
+                  summary: No access to series
+                  value:
+                    status: 1
+                    errorCode: 8
+                    errorMessage: "No access to series"
+                    errorDetails:
+                      series: "demo-crossword"
+                      type: "UNAUTHORIZED_ACCESS_TO_SET"
+      security:
+        - bearerAuth: []
+      tags:
+        - User Fields
+    post:
+      summary: Create or update user-collected fields
+      description: |
+        Creates or updates user-submitted field data for a specific user within a series.
+        This endpoint uses **upsert semantics**: fields are created if they do not exist, or updated if they already exist.
+
+        **POST and PATCH have identical behaviour.** Both perform an upsert. Two methods are exposed
+        for caller convenience — use whichever is semantically clearer in your context.
+
+        **Request Body:**
+        The `fields` object contains only the fields to create or update. Fields not included in the request are left untouched.
+        - To **set or update** a field: include it with a string value.
+        - Fields **not included** in the body: remain unchanged (not cleared, not deleted).
+
+        > **Important:** There is no way to delete individual fields via this endpoint.
+        > Fields can only be cleared when the entire series is deboarded.
+
+        **Field Key Mapping:**
+        | Key       | Represents | Validation                                     |
+        |-----------|------------|------------------------------------------------|
+        | `field_1` | Name       | Required text (series-configurable regex)       |
+        | `field_2` | Email      | Email format (series-configurable regex)        |
+        | `field_3` | Mobile     | Numeric format (series-configurable regex)      |
+        | `field_4` | Facebook   | No default validation                           |
+        | `field_5` | Google     | No default validation                           |
+        | `field_6` | Twitter    | No default validation                           |
+
+        Validation rules are configured per-series in player settings. If a field value fails its
+        series-specific validation, the request is rejected with a 400 error identifying the field and rule.
+
+        **Puzzle Scope:**
+        - **`puzzleId` provided:** Fields are stored scoped to that puzzle.
+        - **`puzzleId` omitted:** Fields are stored as puzzle-agnostic (applies across all puzzles in the series).
+
+        **Response:**
+        A success response with an empty body (`status: 0`). The response does not echo back the saved fields.
+
+        **Side Effects:**
+        - Field values are persisted immediately to the database.
+        - If the same field already exists for this (userId, series, puzzleId) combination, its value is overwritten.
+        - No notification or event is triggered.
+
+        **Use Cases:**
+        - **User Registration:** Collect name and email when a user starts playing a puzzle
+        - **Profile Update:** Update user contact information during a puzzle session
+        - **Publisher Data Sync:** Set user fields programmatically from an external system
+
+        **Examples:**
+
+        **Set name and email for a specific puzzle:**
+        ```bash
+        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Content-Type: application/json' \
+        -d '{"fields": {"field_1": "Jane Doe", "field_2": "jane@example.com"}}'
+        ```
+
+        **Set fields without puzzle scope (puzzle-agnostic):**
+        ```bash
+        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Content-Type: application/json' \
+        -d '{"fields": {"field_1": "Jane Doe", "field_2": "jane@example.com", "field_3": "+14155550100"}}'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier that scopes the user fields.
+            Example: "demo-crossword"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Unique user identifier.
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        - name: puzzleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Puzzle identifier to scope the fields to a specific puzzle.
+            When omitted, fields are stored as puzzle-agnostic (not tied to any puzzle).
+            Example: "daily-2024-01-15"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserFieldsRequest'
+            examples:
+              name_and_email:
+                summary: Set name and email
+                value:
+                  fields:
+                    field_1: "Jane Doe"
+                    field_2: "jane@example.com"
+              all_fields:
+                summary: Set all fields
+                value:
+                  fields:
+                    field_1: "Jane Doe"
+                    field_2: "jane@example.com"
+                    field_3: "+14155550100"
+                    field_4: "jane.doe.fb"
+                    field_5: "jane.doe.google"
+                    field_6: "@janedoe"
+      responses:
+        '200':
+          description: Fields created or updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserFieldsPostResponse'
+              examples:
+                success:
+                  summary: Successful upsert
+                  value:
+                    status: 0
+        '400':
+          description: Bad request (invalid field keys, validation failure, or missing parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_field_key:
+                  summary: Unknown field key
+                  description: |
+                    Error when the request body contains a key not in the allowed set (field_1 through field_6).
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "fields"
+                      value: "Unknown field key: field_99"
+                validation_failure:
+                  summary: Field value fails validation
+                  description: |
+                    Error when a field value does not satisfy the series-specific validation rule.
+                    For example, field_2 (email) must match the email format configured for this series.
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "field_2"
+                      value: "Value does not match required format for this series."
+                missing_series:
+                  summary: Missing required parameter
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "series"
+        '401':
+          description: Unauthorized (missing or invalid API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired_token:
+                  summary: Expired token
+                  value:
+                    status: 1
+                    errorCode: 6
+                    errorMessage: "Token expired"
+                    errorDetails:
+                      type: "EXPIRED_TOKEN"
+        '403':
+          description: Forbidden (no write access to series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_access:
+                  summary: No write access to series
+                  value:
+                    status: 1
+                    errorCode: 8
+                    errorMessage: "No access to series"
+                    errorDetails:
+                      series: "demo-crossword"
+                      type: "UNAUTHORIZED_ACCESS_TO_SET"
+      security:
+        - bearerAuth: []
+      tags:
+        - User Fields
+    patch:
+      summary: Update user-collected fields
+      description: |
+        Updates user-submitted field data for a specific user within a series.
+        
+        **This endpoint has identical behaviour to POST.** Both use upsert semantics — fields are created
+        if they do not exist, or updated if they already exist. Two methods are exposed for caller
+        convenience. Use PATCH when your intent is updating existing data, POST when creating new data.
+
+        See the POST endpoint documentation for full details on field keys, validation, puzzle scoping,
+        side effects, and error handling.
+
+        **Examples:**
+
+        **Update email only:**
+        ```bash
+        curl -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Content-Type: application/json' \
+        -d '{"fields": {"field_2": "new.email@example.com"}}'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier that scopes the user fields.
+            Example: "demo-crossword"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Unique user identifier.
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        - name: puzzleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Puzzle identifier to scope the fields to a specific puzzle.
+            When omitted, fields are stored as puzzle-agnostic.
+            Example: "daily-2024-01-15"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserFieldsRequest'
+            examples:
+              update_single_field:
+                summary: Update a single field
+                value:
+                  fields:
+                    field_2: "new.email@example.com"
+      responses:
+        '200':
+          description: Fields updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserFieldsPostResponse'
+              examples:
+                success:
+                  summary: Successful update
+                  value:
+                    status: 0
+        '400':
+          description: Bad request (invalid field keys, validation failure, or missing parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (missing or invalid API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (no write access to series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - bearerAuth: []
+      tags:
+        - User Fields
 components:
   securitySchemes:
     bearerAuth:
@@ -1098,6 +1578,110 @@ components:
             - DELETED
           description: Status of the series
           example: "ACTIVE"
+    UserFieldsRequest:
+      type: object
+      description: |
+        Request body for creating or updating user fields.
+        Include only the fields you want to set or update. Fields not included are left unchanged.
+      required:
+        - fields
+      properties:
+        fields:
+          type: object
+          description: |
+            Key-value pairs of user fields to set. Keys must be from the allowed set: `field_1` through `field_6`.
+            Values are strings. Only include fields you want to create or update.
+          properties:
+            field_1:
+              type: string
+              description: "Name. Validated against series-configured regex (default: required non-empty text)."
+              example: "Jane Doe"
+            field_2:
+              type: string
+              description: "Email. Validated against series-configured regex (default: email format)."
+              example: "jane@example.com"
+            field_3:
+              type: string
+              description: "Mobile. Validated against series-configured regex (default: numeric format)."
+              example: "+14155550100"
+            field_4:
+              type: string
+              description: "Facebook identifier. No default validation."
+              example: "jane.doe.fb"
+            field_5:
+              type: string
+              description: "Google identifier. No default validation."
+              example: "jane.doe.google"
+            field_6:
+              type: string
+              description: "Twitter handle. No default validation."
+              example: "@janedoe"
+          additionalProperties: false
+    UserFieldsGetResponse:
+      type: object
+      description: |
+        Response containing user fields for the requested user, series, and optional puzzle scope.
+        All fields that have been set are returned. Fields never set are omitted (not returned as null).
+      properties:
+        status:
+          type: integer
+          description: "Response status code. 0 indicates success."
+          example: 0
+        userId:
+          type: string
+          description: "Echoed user identifier from the request."
+          example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        series:
+          type: string
+          description: "Echoed series identifier from the request."
+          example: "demo-crossword"
+        puzzleId:
+          type: string
+          nullable: true
+          description: |
+            Echoed puzzle identifier from the request. Null when the request did not include a puzzleId.
+          example: "daily-2024-01-15"
+        fields:
+          type: object
+          description: |
+            Key-value pairs of user fields that have been set. Only includes fields with values.
+            An empty object means no fields have been set for this user in this scope.
+          properties:
+            field_1:
+              type: string
+              description: "Name"
+              example: "Jane Doe"
+            field_2:
+              type: string
+              description: "Email"
+              example: "jane@example.com"
+            field_3:
+              type: string
+              description: "Mobile"
+              example: "+14155550100"
+            field_4:
+              type: string
+              description: "Facebook"
+              example: "jane.doe.fb"
+            field_5:
+              type: string
+              description: "Google"
+              example: "jane.doe.google"
+            field_6:
+              type: string
+              description: "Twitter"
+              example: "@janedoe"
+          additionalProperties: false
+    UserFieldsPostResponse:
+      type: object
+      description: |
+        Response for successful field creation or update. Contains only the status code.
+        The saved fields are not echoed back. Use GET to retrieve the current state if needed.
+      properties:
+        status:
+          type: integer
+          description: "Response status code. 0 indicates success."
+          example: 0
 x-tagGroups:
   - name: Auth
     tags:
