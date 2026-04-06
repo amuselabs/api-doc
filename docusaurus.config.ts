@@ -103,6 +103,49 @@ const config: Config = {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
     },
+    languageTabs: [
+      {
+        tabName: "JavaScript",
+        highlight: "javascript",
+        language: "javascript",
+        variant: "fetch",
+      },
+      {
+        tabName: "cURL",
+        highlight: "bash",
+        language: "curl",
+        variant: "curl",
+        options: {
+          longFormat: false,
+          followRedirect: true,
+          trimRequestBody: true,
+        },
+      },
+      {
+        tabName: "Python",
+        highlight: "python",
+        language: "python",
+        variant: "requests",
+      },
+      {
+        tabName: "Go",
+        highlight: "go",
+        language: "go",
+        variant: "native",
+      },
+      {
+        tabName: "C#",
+        highlight: "csharp",
+        language: "csharp",
+        variant: "httpclient",
+      },
+      {
+        tabName: "Ruby",
+        highlight: "ruby",
+        language: "ruby",
+        variant: "Net::HTTP",
+      },
+    ],
   } satisfies Preset.ThemeConfig,
   plugins: [
     [

@@ -737,7 +737,7 @@ paths:
                       type: "UNAUTHORIZED_ACCESS_TO_SET"
   /api/v1/user-fields:
     get:
-      summary: Retrieve user-collected fields for a user
+      summary: Retrieve user fields for a user
       description: |
         Retrieves user-submitted field data for a specific user within a series.
         Fields are returned as key-value pairs in a `fields` object using generic keys (`field_1` through `field_6`).
@@ -801,7 +801,7 @@ paths:
           schema:
             type: string
           description: |
-            Unique user identifier (assigned via browser cookie on first visit).
+            Unique user identifier.
             Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
         - name: puzzleId
           in: query
@@ -904,7 +904,7 @@ paths:
       tags:
         - User Fields
     post:
-      summary: Create or update user-collected fields
+      summary: Create or update user fields
       description: |
         Creates or updates user-submitted field data for a specific user within a series.
         This endpoint uses **upsert semantics**: fields are created if they do not exist, or updated if they already exist.
@@ -1097,7 +1097,7 @@ paths:
       tags:
         - User Fields
     patch:
-      summary: Update user-collected fields
+      summary: Update user fields
       description: |
         Updates user-submitted field data for a specific user within a series.
         

@@ -66,20 +66,20 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "retrieve-user-collected-fields-for-a-user",
-          label: "Retrieve user-collected fields for a user",
+          id: "retrieve-user-fields-for-a-user",
+          label: "Retrieve user fields for a user",
           className: "api-method get",
         },
         {
           type: "doc",
-          id: "create-or-update-user-collected-fields",
-          label: "Create or update user-collected fields",
+          id: "create-or-update-user-fields",
+          label: "Create or update user fields",
           className: "api-method post",
         },
         {
           type: "doc",
-          id: "update-user-collected-fields",
-          label: "Update user-collected fields",
+          id: "update-user-fields",
+          label: "Update user fields",
           className: "api-method patch",
         },
       ],
