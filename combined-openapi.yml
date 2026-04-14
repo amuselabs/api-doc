@@ -740,6 +740,18 @@ paths:
         Fetches aggregated stats for a user given a series. The response includes started-puzzle metrics
         (counts and streaks) and completed-puzzle metrics (counts, streaks, and solve-time aggregates when available).
 
+        **Response field guide:**
+        - `userStats.userId`: User identifier used for the aggregation.
+        - `userStats.series`: Series identifier for which stats are computed.
+        - `userStats.stats.started.count`: Total puzzles started.
+        - `userStats.stats.started.currentStreak`: Current streak of consecutive published puzzles started without breaking the sequence.
+        - `userStats.stats.started.longestStreak`: Longest streak of consecutive published puzzles started.
+        - `userStats.stats.completed.count`: Total puzzles solved/completed.
+        - `userStats.stats.completed.currentStreak`: Current streak of consecutive puzzles solved before the next puzzle was published.
+        - `userStats.stats.completed.longestStreak`: Longest streak of consecutive puzzles solved before the next puzzle was published.
+        - `userStats.stats.completed.totalSolveTime`: Total solve time in seconds (nullable).
+        - `userStats.stats.completed.fastestSolveTime`: Fastest solve time in seconds (nullable).
+
         **Example:**
 
         ```bash
@@ -1033,15 +1045,15 @@ components:
       properties:
         count:
           type: integer
-          description: Number of started puzzles
+          description: Total puzzles started
           example: 42
         currentStreak:
           type: integer
-          description: Current streak (started)
+          description: Current streak of consecutive published puzzles started without a break
           example: 5
         longestStreak:
           type: integer
-          description: Longest streak (started)
+          description: Longest streak of consecutive published puzzles started
           example: 12
     UserStatsCompleted:
       type: object
@@ -1049,25 +1061,25 @@ components:
       properties:
         count:
           type: integer
-          description: Number of completed puzzles
+          description: Total puzzles solved/completed
           example: 38
         currentStreak:
           type: integer
-          description: Current streak (completed)
+          description: Current streak of consecutive puzzles solved before the next puzzle was published
           example: 4
         longestStreak:
           type: integer
-          description: Longest streak (completed)
+          description: Longest streak of consecutive puzzles solved before the next puzzle was published
           example: 10
         totalSolveTime:
           type: integer
           nullable: true
-          description: Aggregate solve time when available (in seconds); null if not applicable. Can be used to derive average solve time
+          description: Total solve time in seconds; null if not applicable
           example: 86400
         fastestSolveTime:
           type: integer
           nullable: true
-          description: Fastest solve time when available (in seconds); null if not applicable
+          description: Fastest solve time in seconds; null if not applicable
           example: 120
     ErrorResponse:
       type: object
