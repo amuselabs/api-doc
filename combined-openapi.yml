@@ -733,6 +733,127 @@ paths:
                     errorDetails:
                       series: "pm"
                       type: "UNAUTHORIZED_ACCESS_TO_SET"
+  /api/v1/user-stats:
+    get:
+      summary: Get series specific user stats
+      description: |
+        Fetches aggregated stats for a user given a series. The response includes started-puzzle metrics
+        (counts and streaks) and completed-puzzle metrics (counts, streaks, and solve-time aggregates when available).
+
+        **Example:**
+
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v1/user-stats?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Accept: application/json' \
+        -H 'Authorization: <your_access_token>'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier for the puzzle collection.
+            Example: "api-demo-crossword", "demo-api"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            User ID to fetch stats for.
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+      responses:
+        '200':
+          description: Successful response with user stats object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserStatsResponse'
+              examples:
+                user_stats:
+                  summary: User stats for a series
+                  description: |
+                    Aggregated started and completed stats. `totalSolveTime` and `fastestSolveTime` may be null when not applicable.
+                  value:
+                    status: 0
+                    userStats:
+                      userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                      series: "demo-api"
+                      stats:
+                        started:
+                          count: 42
+                          currentStreak: 5
+                          longestStreak: 12
+                        completed:
+                          count: 38
+                          currentStreak: 4
+                          longestStreak: 10
+                          totalSolveTime: 86400
+                          fastestSolveTime: 120
+        '400':
+          description: Bad request (missing/invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_required_parameter:
+                  summary: Missing required parameter
+                  description: Error response when a required parameter is missing
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "series"
+        '401':
+          description: Unauthorized (invalid or missing API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired_token:
+                  summary: Expired token
+                  description: Error response when the API token has expired
+                  value:
+                    status: 1
+                    errorCode: 6
+                    errorMessage: "Token expired"
+                    errorDetails:
+                      type: "EXPIRED_TOKEN"
+                invalid_token:
+                  summary: Invalid token
+                  description: Error response when the API token is invalid
+                  value:
+                    status: 1
+                    errorCode: 5
+                    errorMessage: "Invalid token"
+                    errorDetails:
+                      type: "INVALID_TOKEN"
+        '403':
+          description: Forbidden (no access to series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_access_to_series:
+                  summary: No access to series
+                  description: Error response when the caller does not have access to the requested series
+                  value:
+                    status: 1
+                    errorCode: 8
+                    errorMessage: "No access to series"
+                    errorDetails:
+                      series: "demo-api"
+                      type: "UNAUTHORIZED_ACCESS_TO_SET"
+      security:
+        - bearerAuth: []
+      tags:
+        - Analytics
 components:
   securitySchemes:
     bearerAuth:
@@ -759,6 +880,17 @@ components:
         hasMore:
           type: boolean
           description: Indicates if there are more plays available (pagination)
+    GetUserStatsResponse:
+      type: object
+      description: Response containing aggregated user statistics for a user in a series
+      properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
+        userStats:
+          $ref: '#/components/schemas/UserStatsResponse'
+          description: Aggregated stats for the requested user and series
     PlayResponse:
       type: object
       description: Individual play data with puzzle type specific progress information
@@ -871,6 +1003,72 @@ components:
           minimum: 0
           description: Number of pieces remaining to be placed
           example: 25
+    UserStatsResponse:
+      type: object
+      description: Aggregated user statistics for a single series
+      properties:
+        userId:
+          type: string
+          description: User identifier
+          example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        series:
+          type: string
+          description: Series identifier
+          example: "demo-api"
+        stats:
+          $ref: '#/components/schemas/UserStatsAggregates'
+    UserStatsAggregates:
+      type: object
+      description: |
+        Started and completed aggregates. The `completed` object reflects the completion lane in JSON
+        (field name `completed`), backed by relaxed-completion columns in storage.
+      properties:
+        started:
+          $ref: '#/components/schemas/UserStatsStarted'
+        completed:
+          $ref: '#/components/schemas/UserStatsCompleted'
+    UserStatsStarted:
+      type: object
+      description: Stats for puzzles the user has started
+      properties:
+        count:
+          type: integer
+          description: Number of started puzzles
+          example: 42
+        currentStreak:
+          type: integer
+          description: Current streak (started)
+          example: 5
+        longestStreak:
+          type: integer
+          description: Longest streak (started)
+          example: 12
+    UserStatsCompleted:
+      type: object
+      description: Stats for puzzles the user has completed (relaxed completion semantics)
+      properties:
+        count:
+          type: integer
+          description: Number of completed puzzles
+          example: 38
+        currentStreak:
+          type: integer
+          description: Current streak (completed)
+          example: 4
+        longestStreak:
+          type: integer
+          description: Longest streak (completed)
+          example: 10
+        totalSolveTime:
+          type: integer
+          nullable: true
+          description: Aggregate solve time when available (in seconds); null if not applicable. Can be used to derive average solve time
+          example: 86400
+        fastestSolveTime:
+          type: integer
+          nullable: true
+          description: Fastest solve time when available (in seconds); null if not applicable
+          example: 120
     ErrorResponse:
       type: object
       description: Standard error response format for API errors

@@ -1,0 +1,81 @@
+---
+id: get-series-specific-user-stats
+title: "Get series specific user stats"
+description: "Fetches aggregated stats for a user given a series. The response includes started-puzzle metrics"
+sidebar_label: "Get series specific user stats"
+hide_title: true
+hide_table_of_contents: true
+api: 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
+sidebar_class_name: "get api-method"
+info_path: puzzleme-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get series specific user stats"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/user-stats"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Fetches aggregated stats for a user given a series. The response includes started-puzzle metrics
+(counts and streaks) and completed-puzzle metrics (counts, streaks, and solve-time aggregates when available).
+
+**Example:**
+
+```bash
+curl -L 'http://localhost:8080/pmm-dev/api/v1/user-stats?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+-H 'Accept: application/json' \
+-H 'Authorization: <your_access_token>'
+```
+
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"name":"series","in":"query","required":true,"schema":{"type":"string"},"description":"Series identifier for the puzzle collection.\nExample: \"api-demo-crossword\", \"demo-api\"\n"},{"name":"userId","in":"query","required":true,"schema":{"type":"string"},"description":"User ID to fetch stats for.\nExample: \"9f7439e7-ecf1-4c03-ba90-91273f149231\"\n"}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Successful response with user stats object","content":{"application/json":{"schema":{"type":"object","description":"Response containing aggregated user statistics for a user in a series","properties":{"status":{"type":"integer","description":"Response status code (0 for success)","example":0},"userStats":{"description":"Aggregated stats for the requested user and series","type":"object","properties":{"userId":{"type":"string","description":"User identifier","example":"9f7439e7-ecf1-4c03-ba90-91273f149231"},"series":{"type":"string","description":"Series identifier","example":"demo-api"},"stats":{"type":"object","description":"Started and completed aggregates. The `completed` object reflects the completion lane in JSON\n(field name `completed`), backed by relaxed-completion columns in storage.\n","properties":{"started":{"type":"object","description":"Stats for puzzles the user has started","properties":{"count":{"type":"integer","description":"Number of started puzzles","example":42},"currentStreak":{"type":"integer","description":"Current streak (started)","example":5},"longestStreak":{"type":"integer","description":"Longest streak (started)","example":12}},"title":"UserStatsStarted"},"completed":{"type":"object","description":"Stats for puzzles the user has completed (relaxed completion semantics)","properties":{"count":{"type":"integer","description":"Number of completed puzzles","example":38},"currentStreak":{"type":"integer","description":"Current streak (completed)","example":4},"longestStreak":{"type":"integer","description":"Longest streak (completed)","example":10},"totalSolveTime":{"type":"integer","nullable":true,"description":"Aggregate solve time when available (in seconds); null if not applicable. Can be used to derive average solve time","example":86400},"fastestSolveTime":{"type":"integer","nullable":true,"description":"Fastest solve time when available (in seconds); null if not applicable","example":120}},"title":"UserStatsCompleted"}},"title":"UserStatsAggregates"}},"title":"UserStatsResponse"}},"title":"GetUserStatsResponse"},"examples":{"user_stats":{"summary":"User stats for a series","description":"Aggregated started and completed stats. `totalSolveTime` and `fastestSolveTime` may be null when not applicable.\n","value":{"status":0,"userStats":{"userId":"9f7439e7-ecf1-4c03-ba90-91273f149231","series":"demo-api","stats":{"started":{"count":42,"currentStreak":5,"longestStreak":12},"completed":{"count":38,"currentStreak":4,"longestStreak":10,"totalSolveTime":86400,"fastestSolveTime":120}}}}}}}}},"400":{"description":"Bad request (missing/invalid parameters)","content":{"application/json":{"schema":{"type":"object","description":"Standard error response format for API errors","properties":{"status":{"type":"integer","description":"Error status code (1 for errors)","example":1},"errorCode":{"type":"integer","description":"Specific error code for different error types","example":6},"errorMessage":{"type":"string","description":"Human-readable error message","example":"Token expired"},"errorDetails":{"type":"object","description":"Additional error details specific to the error type","additionalProperties":true,"example":{"type":"EXPIRED_TOKEN","paramName":"series"}}},"title":"ErrorResponse"},"examples":{"missing_required_parameter":{"summary":"Missing required parameter","description":"Error response when a required parameter is missing","value":{"status":1,"errorCode":10,"errorMessage":"Invalid parameter.","errorDetails":{"paramName":"series"}}}}}}},"401":{"description":"Unauthorized (invalid or missing API token)","content":{"application/json":{"schema":{"type":"object","description":"Standard error response format for API errors","properties":{"status":{"type":"integer","description":"Error status code (1 for errors)","example":1},"errorCode":{"type":"integer","description":"Specific error code for different error types","example":6},"errorMessage":{"type":"string","description":"Human-readable error message","example":"Token expired"},"errorDetails":{"type":"object","description":"Additional error details specific to the error type","additionalProperties":true,"example":{"type":"EXPIRED_TOKEN","paramName":"series"}}},"title":"ErrorResponse"},"examples":{"expired_token":{"summary":"Expired token","description":"Error response when the API token has expired","value":{"status":1,"errorCode":6,"errorMessage":"Token expired","errorDetails":{"type":"EXPIRED_TOKEN"}}},"invalid_token":{"summary":"Invalid token","description":"Error response when the API token is invalid","value":{"status":1,"errorCode":5,"errorMessage":"Invalid token","errorDetails":{"type":"INVALID_TOKEN"}}}}}}},"403":{"description":"Forbidden (no access to series)","content":{"application/json":{"schema":{"type":"object","description":"Standard error response format for API errors","properties":{"status":{"type":"integer","description":"Error status code (1 for errors)","example":1},"errorCode":{"type":"integer","description":"Specific error code for different error types","example":6},"errorMessage":{"type":"string","description":"Human-readable error message","example":"Token expired"},"errorDetails":{"type":"object","description":"Additional error details specific to the error type","additionalProperties":true,"example":{"type":"EXPIRED_TOKEN","paramName":"series"}}},"title":"ErrorResponse"},"examples":{"no_access_to_series":{"summary":"No access to series","description":"Error response when the caller does not have access to the requested series","value":{"status":1,"errorCode":8,"errorMessage":"No access to series","errorDetails":{"series":"demo-api","type":"UNAUTHORIZED_ACCESS_TO_SET"}}}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
