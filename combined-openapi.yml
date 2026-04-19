@@ -737,10 +737,10 @@ paths:
                       type: "UNAUTHORIZED_ACCESS_TO_SET"
   /api/v1/user-fields:
     get:
-      summary: Retrieve user fields for a user
+      summary: Get user fields
       description: |
         Retrieves lead generation field data submitted by a specific user for a puzzle within a series.
-        Fields are returned as key-value pairs in a `fields` object using generic keys (`field_1` through `field_3`).
+        Fields are returned as key-value pairs in a `fields` object using keys `field_1`, `field_2`, and `field_3`.
 
         **What are user fields?**
         User fields correspond to the lead generation fields configured in the
@@ -751,7 +751,7 @@ paths:
         and are represented in the API as `field_1`, `field_2`, and `field_3`.
 
         **Field Keys:**
-        Fields use generic keys `field_1` through `field_3`. The label and validation type for each
+        Fields use keys `field_1`, `field_2`, and `field_3`. The label and validation type for each
         field are defined in the series settings under
         [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
         For example, a series might configure `field_1` as "Participant Name" (text),
@@ -901,7 +901,7 @@ paths:
         and are represented in the API as `field_1`, `field_2`, and `field_3`.
 
         **Field Keys:**
-        Fields use generic keys `field_1` through `field_3`. The label and validation type for each
+        Fields use keys `field_1`, `field_2`, and `field_3`. The label and validation type for each
         field are defined in the series settings under
         [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
         For example, a series might configure `field_1` as "Participant Name" (text),
@@ -990,7 +990,7 @@ paths:
                 invalid_field_key:
                   summary: Unknown field key
                   description: |
-                    Error when the request body contains a key not in the allowed set (`field_1` through `field_3`).
+                    Error when the request body contains a key not in the allowed set (`field_1`, `field_2`, and `field_3`).
                   value:
                     status: 1
                     errorCode: 10
@@ -1429,7 +1429,7 @@ components:
         fields:
           type: object
           description: |
-            Key-value pairs of user fields to set. Keys must be from the allowed set: `field_1` through `field_3`.
+            Key-value pairs of user fields to set. Keys must be from the allowed set: `field_1`, `field_2`, and `field_3`.
             Values are strings. Only fields to be set should be included.
             The label and validation type for each field are configured in the series settings under
             [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).

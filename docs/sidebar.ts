@@ -66,8 +66,8 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "retrieve-user-fields-for-a-user",
-          label: "Retrieve user fields for a user",
+          id: "get-user-fields",
+          label: "Get user fields",
           className: "api-method get",
         },
         {
