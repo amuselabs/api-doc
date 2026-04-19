@@ -72,15 +72,9 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "create-or-update-user-fields",
-          label: "Create or update user fields",
+          id: "set-user-fields",
+          label: "Set user fields",
           className: "api-method post",
-        },
-        {
-          type: "doc",
-          id: "update-user-fields",
-          label: "Update user fields",
-          className: "api-method patch",
         },
       ],
     },
