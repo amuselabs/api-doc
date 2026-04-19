@@ -743,10 +743,10 @@ paths:
         Fields are returned as key-value pairs in a `fields` object using generic keys (`field_1` through `field_3`).
 
         **What are user fields?**
-        User fields correspond to the lead generation fields configured in your
+        User fields correspond to the lead generation fields configured in the
         [series settings](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
-        When lead generation is enabled for a series, you can collect up to 3 custom fields of
-        information from players — such as name, email address, or phone number. These fields are
+        When lead generation is enabled for a series, up to 3 custom fields of information can be
+        collected from players — such as name, email address, or phone number. These fields are
         configured with labels and input types (text, numbers, or email) in the series settings,
         and are represented in the API as `field_1`, `field_2`, and `field_3`.
 
@@ -759,9 +759,8 @@ paths:
 
         **Response:**
         Only fields that have been set are returned. Fields that have not been set for the user
-        are omitted from the response (they are not returned as `null` or empty strings).
-        The response always returns HTTP 200 with `status: 0` — an empty `fields` object
-        indicates no data has been collected for this user, not an error.
+        are omitted from the response. The response always returns HTTP 200 with `status: 0` —
+        an empty `fields` object indicates no data has been collected for this user, not an error.
 
         **Examples:**
 
@@ -894,10 +893,10 @@ paths:
         If a field already exists for this user and puzzle, its value is overwritten.
 
         **What are user fields?**
-        User fields correspond to the lead generation fields configured in your
+        User fields correspond to the lead generation fields configured in the
         [series settings](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
-        When lead generation is enabled for a series, you can collect up to 3 custom fields of
-        information from players — such as name, email address, or phone number. These fields are
+        When lead generation is enabled for a series, up to 3 custom fields of information can be
+        collected from players — such as name, email address, or phone number. These fields are
         configured with labels and input types (text, numbers, or email) in the series settings,
         and are represented in the API as `field_1`, `field_2`, and `field_3`.
 
@@ -912,14 +911,8 @@ paths:
         The `fields` object contains only the fields to set. Fields not included in the request
         are left untouched.
 
-        > **Important:** A field value can be set to `null` to unset it.
-
         **Response:**
         A success response with `status: 0`. The response does not echo back the saved fields.
-
-        **Side Effects:**
-        - Field values are persisted immediately.
-        - If the same field already exists for this (userId, series, puzzleId) combination, its value is overwritten.
 
         **Examples:**
 
@@ -1429,7 +1422,7 @@ components:
       type: object
       description: |
         Request body for setting user fields.
-        Include only the fields you want to set. Fields not included in the request are left unchanged.
+        Only the fields to be set should be included. Fields not included in the request are left unchanged.
       required:
         - fields
       properties:
@@ -1437,7 +1430,7 @@ components:
           type: object
           description: |
             Key-value pairs of user fields to set. Keys must be from the allowed set: `field_1` through `field_3`.
-            Values are strings. Only include fields you want to set.
+            Values are strings. Only fields to be set should be included.
             The label and validation type for each field are configured in the series settings under
             [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
           properties:
