@@ -760,7 +760,7 @@ paths:
         **Response:**
         Only fields that have been set are returned. Fields that have not been set for the user
         are omitted from the response. The response always returns HTTP 200 with `status: 0` —
-        an empty `fields` object indicates no data has been collected for this user, not an error.
+        an empty `fields` object indicates no data has been collected for this user.
 
         **Examples:**
 
@@ -800,7 +800,7 @@ paths:
           description: |
             User fields retrieved successfully. Only fields that have been set are returned;
             fields without values are omitted from the response.
-            An empty `fields` object means no data has been collected for this user, not an error.
+            An empty `fields` object means no data has been collected for this user.
           content:
             application/json:
               schema:
