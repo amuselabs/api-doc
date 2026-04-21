@@ -237,41 +237,54 @@ paths:
     get:
       summary: Retrieve series information
       description: |
-        Retrieves series metadata for the authenticated account. The endpoint supports three operation modes:
-        
+        Retrieves series metadata for the authenticated account. The endpoint supports two operation modes:
+
         **1. List All Series:**
         Returns a complete list of all series associated with the authenticated account.
         - Omit the `series` parameter.
         - Response contains an array of all series with their metadata.
-        
+
         **2. Get Specific Series:**
         Returns metadata for a specified series if it exists in the account.
         - Provide the `series` parameter with a valid series identifier.
         - Response contains a single series object with name and displayName.
-        
-        **3. Non-Existent Series:**
-        When an invalid or non-existent series identifier is provided, the endpoint returns an empty list with HTTP 200 status.
-        - Provide the `series` parameter with an invalid identifier.
-        - Response contains an empty array.
-        - This is not treated as an error condition; the endpoint always returns HTTP 200.
-        
+
+        If the `series` parameter is provided but does not match any series in the account, the
+        endpoint still returns HTTP 200 with an empty `seriesList` — this is not treated as an error.
+
+        **Including Settings:**
+        Pass `includeSettings=true` together with a specific `series` to receive the full hierarchical
+        player+picker settings for that series, grouped by section (see the `settings` property in the
+        response schema). The settings include both explicit values stored for the series and defaults
+        for fields that haven't been explicitly configured. When `includeSettings=true` is sent
+        without a specific `series` (list mode), the flag is silently ignored — settings are not
+        attached to list responses.
+
         **Use Cases:**
         - **Series Discovery:** Browse all available series in an account
-        - **Series Validation:** Verify if a specific series exists in an account
         - **Metadata Retrieval:** Get display names and identifiers for series management
-        
+        - **Settings Export:** Retrieve the current player+picker configuration of a series, for
+          inspection or as input to a later `PATCH` call.
+
         **Examples:**
-        
+
         **List All Series:**
         ```bash
         curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
-        
+
         **Get Specific Series:**
         ```bash
         curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+
+        **Get Specific Series With Settings:**
+        ```bash
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword&includeSettings=true' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
@@ -284,13 +297,25 @@ paths:
           description: |
             Series identifier. When omitted, all series are returned. When provided, returns the specified series if it exists, otherwise returns an empty list.
             Example: "api-demo-crossword", "demo-quiz", "jigsaw-series"
+        - name: includeSettings
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: |
+            When `true` AND a specific `series` is provided, the response item includes a `settings`
+            object with the hierarchical player+picker settings for that series. When `true` in list
+            mode (no `series` param), the flag is silently ignored.
+            Example: `true`
       responses:
         '200':
           description: |
             Successful response. The endpoint always returns HTTP 200 status code. The response body contains a list of
             series objects. When the series parameter is omitted, the list contains all series for the account. When a
             valid series identifier is provided, the list contains a single series object. When an invalid series
-            identifier is provided, the list is empty.
+            identifier is provided, the list is empty. When `includeSettings=true` is used with a specific series, the
+            returned object has a nested `settings` property.
           content:
             application/json:
               schema:
@@ -322,6 +347,55 @@ paths:
                       - name: "api-demo-crossword"
                         displayName: "API Demo Crossword"
                         status: "ACTIVE"
+                specific_series_with_settings:
+                  summary: Specific series with `includeSettings=true`
+                  description: |
+                    Example response when `includeSettings=true` is passed with a specific series.
+                    The `settings` object is hierarchical and groups fields by section.
+                  value:
+                    status: 0
+                    seriesList:
+                      - name: "api-demo-crossword"
+                        displayName: "API Demo Crossword"
+                        status: "ACTIVE"
+                        settings:
+                          security:
+                            allowedDomains: "*.example.com"
+                            landingPageUrl: "https://example.com/games"
+                            disallowCookies: false
+                            saveProgressInBrowser: true
+                          userFieldsCollection:
+                            collectIn: "ALL_PUZZLES"
+                            field1:
+                              enabled: true
+                              label: "Participant(s) Name"
+                              fieldType: "TEXT_REQUIRED"
+                            field2:
+                              enabled: true
+                              label: "Email Address"
+                              fieldType: "EMAIL"
+                          startExperience:
+                            message: "<p>Welcome — click Start when ready.</p>"
+                            showStartButton: true
+                            showHowToPlay: true
+                          scoring:
+                            correctAnswer: 10
+                            revealPenalty: -1
+                            bonusPerMinute: 15
+                            targetTime: 15
+                            displayLocation:
+                              crossword: "END_ONLY"
+                              quiz: "END_ONLY"
+                            quizFormat: "COMPUTED"
+                          assistFeatures:
+                            hints: true
+                            reveal: true
+                            check: true
+                            errorCheckMode: false
+                          sharing:
+                            enabled: true
+                            twitterHandle: "@AmuseLabs"
+                            shareMessage: "Play this puzzle: [puzzle-link]"
                 non_existent_series:
                   summary: Non-existent series request
                   description: |
@@ -344,6 +418,256 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Forbidden (no access to account or series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - bearerAuth: []
+      tags:
+        - Series
+    patch:
+      summary: Update series information
+      description: |
+        Partially updates a series. Any subset of the supported body fields may be provided — only
+        the fields you send are updated; everything else is left untouched. A single request may
+        combine multiple updates (for example, renaming the series and changing settings in one call).
+
+        **Supported body fields:**
+        - `displayName` *(string)* — update the series display name.
+        - `settings` *(object)* — hierarchical player+picker settings (same schema as returned by
+          `GET /api/v1/series?includeSettings=true`). Only the paths you send are merged onto the
+          existing settings — absent paths are untouched. Unknown API paths cause a `400` error.
+
+        **Settings merge semantics:**
+        - Boolean / integer / enum fields: the new value replaces the old one.
+        - String fields: the new value replaces the old one. Sending `""` sets the field to empty.
+
+        **Examples:**
+
+        **Rename a series:**
+        ```bash
+        curl -L -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
+          -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+          -H 'Content-Type: application/json' \
+          -d '{"displayName": "API Demo (Updated)"}'
+        ```
+
+        **Update specific settings:**
+        ```bash
+        curl -L -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
+          -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "settings": {
+              "scoring": { "correctAnswer": 20, "targetTime": 10 },
+              "sharing": { "enabled": true, "twitterHandle": "@AmuseLabs" }
+            }
+          }'
+        ```
+
+        **Rename and update settings in one call:**
+        ```bash
+        curl -L -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
+          -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "displayName": "API Demo (Updated)",
+            "settings": { "assistFeatures": { "hints": false } }
+          }'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier to update.
+            Example: "api-demo-crossword"
+      requestBody:
+        required: true
+        description: |
+          JSON body with any subset of `displayName` and/or `settings`. At least one field must be
+          provided; an empty body is rejected with `400`.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeriesPatchRequest'
+            examples:
+              rename:
+                summary: Rename a series
+                value:
+                  displayName: "API Demo (Updated)"
+              update_settings:
+                summary: Update settings only
+                value:
+                  settings:
+                    scoring:
+                      correctAnswer: 20
+                      targetTime: 10
+                    sharing:
+                      enabled: true
+                      twitterHandle: "@AmuseLabs"
+              combined:
+                summary: Rename and update settings
+                value:
+                  displayName: "API Demo (Updated)"
+                  settings:
+                    assistFeatures:
+                      hints: false
+      responses:
+        '200':
+          description: |
+            Successful update. The response is intentionally empty beyond the base status envelope —
+            PATCH is a pure write. Callers that need the post-update state should follow up with
+            `GET /api/v1/series?series=X&includeSettings=true`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeriesPatchResponse'
+              examples:
+                success:
+                  summary: Successful update
+                  value:
+                    status: 0
+        '400':
+          description: |
+            Bad request. Common causes:
+            - Empty or non-JSON body.
+            - Unknown top-level key in the body (allowed: `displayName`, `settings`).
+            - Unknown API path inside `settings` (e.g., `settings.scoring.madeUpField`).
+            - `displayName` present but empty.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (invalid or missing API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (no write access to the series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - bearerAuth: []
+      tags:
+        - Series
+    post:
+      summary: Create a new series
+      description: |
+        Creates a new series, optionally with an initial set of hierarchical player+picker settings.
+
+        **Body fields:**
+        - `series` *(string, required)* — unique identifier for the new series. Must match the series
+          naming rules.
+        - `seriesDisplayName` *(string, required)* — human-readable display name.
+        - `settings` *(object, optional)* — hierarchical player+picker settings to apply immediately
+          after creation (same schema as returned by `GET /api/v1/series?includeSettings=true`).
+          If omitted, the new series is created with default settings.
+
+        **Unknown settings paths** (e.g., a typo under `settings.scoring.*`) cause a 400 error — same
+        strict path validation as `PATCH /api/v1/series`.
+
+        **Examples:**
+
+        **Create with defaults:**
+        ```bash
+        curl -L -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/series' \
+          -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "series": "fall-2024-crosswords",
+            "seriesDisplayName": "Fall 2024 Crosswords"
+          }'
+        ```
+
+        **Create with initial settings:**
+        ```bash
+        curl -L -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/series' \
+          -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "series": "fall-2024-crosswords",
+            "seriesDisplayName": "Fall 2024 Crosswords",
+            "settings": {
+              "scoring": { "correctAnswer": 10, "targetTime": 15 },
+              "assistFeatures": { "hints": true, "reveal": true, "check": true },
+              "sharing": { "enabled": true, "twitterHandle": "@AmuseLabs" }
+            }
+          }'
+        ```
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeriesPostRequest'
+            examples:
+              bare:
+                summary: Bare create
+                value:
+                  series: "fall-2024-crosswords"
+                  seriesDisplayName: "Fall 2024 Crosswords"
+              with_settings:
+                summary: Create with initial settings
+                value:
+                  series: "fall-2024-crosswords"
+                  seriesDisplayName: "Fall 2024 Crosswords"
+                  settings:
+                    scoring:
+                      correctAnswer: 10
+                      targetTime: 15
+                    assistFeatures:
+                      hints: true
+                      reveal: true
+                      check: true
+                    sharing:
+                      enabled: true
+                      twitterHandle: "@AmuseLabs"
+      responses:
+        '200':
+          description: |
+            Series created successfully. If initial `settings` were provided, they have been applied.
+
+            Response body is intentionally minimal — just the base `{status: 0}` envelope, aligned
+            with the `PATCH /api/v1/series` contract. If you need the post-create state (e.g., the
+            final series identifier with any account-handle prefix the server may have applied, or
+            the resulting hierarchical settings), follow up with
+            `GET /api/v1/series?series=X&includeSettings=true`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeriesPostResponse'
+              examples:
+                success:
+                  summary: Successful create
+                  value:
+                    status: 0
+        '400':
+          description: |
+            Bad request. Common causes:
+            - Missing or invalid `series` / `seriesDisplayName`.
+            - Unknown API path inside `settings`.
+            - Settings body not a JSON object.
+            - Series name already exists in the account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (invalid or missing API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (e.g., series-creation quota exhausted, or no write access to the account)
           content:
             application/json:
               schema:
@@ -1098,6 +1422,347 @@ components:
             - DELETED
           description: Status of the series
           example: "ACTIVE"
+        settings:
+          $ref: '#/components/schemas/PlayerSettings'
+          description: |
+            Hierarchical player+picker settings for this series. Only present when the caller passed
+            `includeSettings=true` on `GET /api/v1/series` for a specific series. Omitted in list
+            mode and when `includeSettings` is false or not provided.
+
+    SeriesPatchRequest:
+      type: object
+      description: |
+        Request body for `PATCH /api/v1/series`. At least one of `displayName` or `settings` must be
+        present; unknown top-level keys cause a 400 error.
+      properties:
+        displayName:
+          type: string
+          description: |
+            New display name for the series. If present, must be non-empty.
+            Example: "API Demo (Updated)"
+        settings:
+          $ref: '#/components/schemas/PlayerSettings'
+
+    SeriesPatchResponse:
+      type: object
+      description: |
+        Response from `PATCH /api/v1/series`. Intentionally minimal — PATCH is a pure write. The
+        only field guaranteed in the body is the base `status` envelope. Callers that need the
+        post-update state should follow up with `GET /api/v1/series?series=X&includeSettings=true`.
+      properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
+
+    SeriesPostRequest:
+      type: object
+      description: |
+        Request body for `POST /api/v1/series` — creates a new series, optionally with an initial
+        set of hierarchical player+picker settings. Send as `Content-Type: application/json`.
+      required:
+        - series
+        - seriesDisplayName
+      properties:
+        series:
+          type: string
+          description: |
+            Unique identifier for the new series. Must match the series naming rules (alphanumeric +
+            hyphens, max length enforced). For non-superadmin callers, the account handle is
+            auto-prefixed server-side.
+            Example: "fall-2024-crosswords"
+        seriesDisplayName:
+          type: string
+          description: |
+            Human-readable display name for the series. Shown in the dashboard and — when the series
+            is rendered — in the player UI.
+            Example: "Fall 2024 Crosswords"
+        settings:
+          $ref: '#/components/schemas/PlayerSettings'
+
+    SeriesPostResponse:
+      type: object
+      description: |
+        Response from `POST /api/v1/series`. Intentionally minimal — just the base `status` envelope.
+        Aligned with the `PATCH /api/v1/series` contract: POST is a pure write, and callers that
+        need the post-create state (final identifier, resulting settings) follow up with
+        `GET /api/v1/series?series=X&includeSettings=true`.
+      properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
+
+    PlayerSettings:
+      type: object
+      description: |
+        Hierarchical player and picker settings for a series. Grouped into ten top-level sections
+        that mirror the PuzzleMe series settings editor. All sections and fields are optional; on
+        `PATCH` only the paths you send are merged onto the existing settings. Unknown API paths
+        cause a 400 error.
+
+        Some fields are only meaningful for specific puzzle types. Those are noted in the per-field
+        descriptions below (e.g., "Crossword only"); sending them for other puzzle types has no effect.
+      properties:
+        security:
+          type: object
+          description: Security and privacy settings (iframe, cookies, storage).
+          properties:
+            allowedDomains:
+              type: string
+              description: |
+                Space-separated list of parent domains allowed to iframe the puzzle player.
+                Supports `*` wildcards (e.g., `*.example.com`). Leave empty to allow any site.
+                Example: "*.example.com washingtonpost.com"
+            landingPageUrl:
+              type: string
+              description: |
+                URL players are redirected to when loading a puzzle outside an iframe (security
+                measure to prevent unauthorized direct access).
+                Example: "https://example.com/games"
+            disallowCookies:
+              type: boolean
+              description: When true, the player does not set cookies.
+            saveProgressInBrowser:
+              type: boolean
+              description: When true, puzzle progress is persisted in the browser's local storage.
+        userFieldsCollection:
+          type: object
+          description: Lead-generation fields collected from players.
+          properties:
+            collectIn:
+              type: string
+              enum: [ALL_PUZZLES, CONTEST_MODE, NON_CONTEST_MODE]
+              description: Which puzzle modes collect user info.
+            field1:
+              $ref: '#/components/schemas/UserFieldConfig'
+            field2:
+              $ref: '#/components/schemas/UserFieldConfig'
+            field3:
+              $ref: '#/components/schemas/UserFieldConfig'
+        startExperience:
+          type: object
+          description: What the player sees when a puzzle first loads.
+          properties:
+            message:
+              type: string
+              description: Rich text shown in the start modal. HTML allowed.
+            showStartButton:
+              type: boolean
+              description: When true, show a modal with a "Start" button after the puzzle loads.
+            showHowToPlay:
+              type: boolean
+              description: When true, show a "How to play" tab alongside the start message.
+        pauseExperience:
+          type: object
+          description: What the player sees when they pause the puzzle.
+          properties:
+            message:
+              type: string
+              description: Rich text shown in the pause modal. HTML allowed.
+        completionExperience:
+          type: object
+          description: What the player sees when they complete (or incorrectly complete) a puzzle.
+          properties:
+            title:
+              type: string
+              description: Completion pop-up title (non-quiz, non-wordrow).
+            quizTitle:
+              type: string
+              description: Completion pop-up title. Quiz only.
+            wordrowTitle:
+              type: string
+              description: Completion pop-up title. Wordrow only.
+            subheaderMessage:
+              type: string
+              description: Short one-line message shown below the completion title.
+            message:
+              type: string
+              description: Longer completion message. HTML allowed.
+            showStreak:
+              type: boolean
+              description: When true, show the streak of last-N completions in the completion pop-up.
+            soundUrl:
+              type: string
+              format: uri
+              description: HTTPS audio URL played on completion. Maximum 500KB.
+            animationUrl:
+              type: string
+              format: uri
+              description: HTTPS Lottie animation URL played on correct completion. Maximum 500KB.
+            incorrectTitle:
+              type: string
+              description: Incorrect-grid pop-up title. Crossword, Sudoku, KrissKross, Codeword.
+            incorrectMessage:
+              type: string
+              description: Incorrect-grid pop-up message. Crossword, KrissKross, Codeword.
+            sudokuIncorrectMessage:
+              type: string
+              description: Incorrect-grid pop-up message. Sudoku only.
+        playerInterface:
+          type: object
+          description: Player UI toggles.
+          properties:
+            chessView:
+              type: boolean
+              description: Row/column numbers outside the grid. Crossword only.
+            wordLengths:
+              type: boolean
+              description: Show word lengths in clue list. Crossword, Wordsearch.
+            printEnabled:
+              type: boolean
+              description: Enable the print button. Crossword, KrissKross, Codeword, Sudoku, Wordsearch.
+            fullscreenEnabled:
+              type: boolean
+              description: Expose a fullscreen option in the hamburger menu.
+            timerEnabled:
+              type: boolean
+              description: Allow users to toggle the in-game timer.
+            quizLayout:
+              type: string
+              enum: [horizontal, vertical]
+              description: Layout direction. Quiz only.
+        scoring:
+          type: object
+          description: Scoring rules and display.
+          properties:
+            correctAnswer:
+              type: integer
+              description: Points awarded for a correct answer. Crossword, Quiz, Sudoku, KrissKross.
+            revealPenalty:
+              type: integer
+              description: Points deducted for revealing a letter. Crossword, KrissKross.
+            bonusPerMinute:
+              type: integer
+              description: Bonus points per minute saved vs target time. Crossword, Quiz, Sudoku, KrissKross.
+            targetTime:
+              type: integer
+              description: Target time to complete the puzzle (in minutes). Crossword, Quiz, Sudoku, KrissKross.
+            displayLocation:
+              type: object
+              description: Where to display the score, per puzzle type.
+              properties:
+                crossword:
+                  $ref: '#/components/schemas/ScoreDisplayLocation'
+                krisskross:
+                  $ref: '#/components/schemas/ScoreDisplayLocation'
+                sudoku:
+                  type: string
+                  enum: [END_ONLY, NEVER]
+                  description: Score display location for Sudoku (reduced value set).
+                wordsearch:
+                  $ref: '#/components/schemas/ScoreDisplayLocation'
+                wordf:
+                  $ref: '#/components/schemas/ScoreDisplayLocation'
+                quiz:
+                  $ref: '#/components/schemas/ScoreDisplayLocation'
+            quizFormat:
+              type: string
+              enum: [DIRECT, COMPUTED]
+              description: |
+                Score format for quiz. `DIRECT` shows "n/m"; `COMPUTED` shows points-based score.
+                Quiz only.
+        assistFeatures:
+          type: object
+          description: Player-assist features (hints, reveal, check).
+          properties:
+            hints:
+              type: boolean
+              description: Enable hints. Crossword, Wordsearch, WordF, Quiz, Jigsaw.
+            reveal:
+              type: boolean
+              description: Enable reveal. Crossword, KrissKross, Codeword, Sudoku, Wordsearch, WordF.
+            check:
+              type: boolean
+              description: Enable check. Crossword, KrissKross, Codeword, Sudoku.
+            errorCheckMode:
+              type: boolean
+              description: Enable error-check mode. Crossword, KrissKross, Codeword, Sudoku.
+            jigsaw:
+              type: object
+              description: Jigsaw-specific assist features.
+              properties:
+                disableReferenceImage:
+                  type: boolean
+                disableEdgesOnly:
+                  type: boolean
+                startScattered:
+                  type: boolean
+                  description: Start the puzzle in scattered mode.
+        picker:
+          type: object
+          description: Settings for the picker (series-level puzzle index) surface.
+          properties:
+            hideLink:
+              type: boolean
+              description: Hide the "more puzzles" link from the hamburger menu and completion modal.
+            buttonLabel:
+              type: string
+              description: Label for the picker button (default "More puzzles").
+            appearance:
+              type: string
+              enum: ["0", "1", "2", "3", "4"]
+              description: Picker style code.
+            adTag:
+              type: string
+              format: uri
+              description: Pre-roll VAST ad tag URL.
+        sharing:
+          type: object
+          description: Social sharing configuration.
+          properties:
+            enabled:
+              type: boolean
+              description: Enable the sharing UI.
+            twitterHandle:
+              type: string
+              description: 'Twitter/X handle (e.g., "@AmuseLabs"). Used in share messages.'
+            blueskyHandle:
+              type: string
+              description: 'Bluesky handle (e.g., "@user.bsky.social").'
+            shareMessage:
+              type: string
+              description: |
+                Default share message template. Supports placeholders like `[puzzle-type]`,
+                `[social-handle]`, `[puzzle-link]`.
+            shareMessageNoHandle:
+              type: string
+              description: Share message used when no social handle is configured.
+            solvedMessage:
+              type: string
+              description: |
+                Share-results message template. Supports placeholders like `[time-taken]`,
+                `[emoji-grid]`, `[puzzle-link]`.
+            solvedMessageNoHandle:
+              type: string
+              description: Share-results message used when no social handle is configured.
+
+    UserFieldConfig:
+      type: object
+      description: Configuration for one lead-gen field (name / email / mobile).
+      properties:
+        enabled:
+          type: boolean
+          description: When true, this field is shown in the user-info form.
+        label:
+          type: string
+          description: Display label shown above the input.
+        fieldType:
+          type: string
+          enum: [TEXT_REQUIRED, EMAIL, NUMBERS_ONLY, CUSTOM]
+          description: |
+            Input type preset. `TEXT_REQUIRED` accepts any non-empty string; `EMAIL` requires a valid
+            email; `NUMBERS_ONLY` accepts digits; `CUSTOM` preserves an existing custom regex (sending
+            `CUSTOM` in `PATCH` leaves the regex unchanged).
+
+    ScoreDisplayLocation:
+      type: string
+      enum:
+        - NAVBAR_ONLY
+        - END_ONLY
+        - NAVBAR_AND_END
+        - NEVER
+      description: Where to show the score for a given puzzle type.
 x-tagGroups:
   - name: Auth
     tags:
