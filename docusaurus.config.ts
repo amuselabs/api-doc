@@ -26,9 +26,11 @@ const config: Config = {
   baseUrl: process.env.DOCS_BASE_URL || '/api-doc',
 
   // GitHub pages deployment config.
-  organizationName: 'amuselabs',
-  projectName: 'api-doc',
+  // If you aren't using GitHub pages, you don't need these.
+  organizationName: 'amuselabs', // Usually your GitHub org/user name.
+  projectName: 'api-doc', // Usually your repo name.
   deploymentBranch: 'gh-pages',
+  trailingSlash: false,
 
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
