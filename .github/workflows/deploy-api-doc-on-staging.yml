@@ -83,6 +83,7 @@ jobs:
       - name: Build API documentation site
         run: npm run build
         env:
+          SITE_URL: https://staging.amuselabs.com
           DOCS_BASE_URL: ${{ steps.compute-paths.outputs.base_url }}
 
       - name: Deploy API docs to staging server with Rsync
