@@ -1,11 +1,29 @@
 # This workflow builds the main (or any) branch of the API doc repository
 # and deploys it to the staging server via rsync over SSH.
-# Trigger: manual (workflow_dispatch) — no automated push trigger.
+# Trigger: manual (workflow_dispatch).
+#
+# For multi-branch review deploys, provide a branch_slug and choose a
+# url_scheme so multiple branches can coexist on staging simultaneously.
+# When deploying "main" with no branch_slug, it deploys to the default
+# /api-doc path as before.
 
 name: Deploy API documentation on staging
 
 on:
   workflow_dispatch:
+    inputs:
+      url_scheme:
+        description: 'URL layout for the deployed docs'
+        required: true
+        default: 'api-doc/{branch}'
+        type: choice
+        options:
+          - 'api-doc/{branch}'
+          - '{branch}/api-doc'
+      branch_slug:
+        description: 'Branch slug for the deploy path (leave empty for main-branch deploy to /api-doc). Use this to override the branch name, e.g. "feature-foo" instead of "feature/foo".'
+        required: false
+        type: string
 
 jobs:
   build:
@@ -22,6 +40,34 @@ jobs:
           echo "Branch is ${{ github.ref_name }}"
           echo "Workspace is ${{ github.workspace }}"
 
+      - name: Compute deploy paths
+        id: compute-paths
+        run: |
+          SLUG="${{ inputs.branch_slug }}"
+
+          # Default: no slug means deploy to the standard /api-doc path
+          if [ -z "$SLUG" ]; then
+            echo "base_url=/api-doc" >> "$GITHUB_OUTPUT"
+            echo "deploy_path=api-doc" >> "$GITHUB_OUTPUT"
+            echo "Deploying to default path: /api-doc"
+            exit 0
+          fi
+
+          # Sanitize the slug: replace slashes with dashes
+          SLUG=$(echo "$SLUG" | tr '/' '-')
+
+          SCHEME="${{ inputs.url_scheme }}"
+          if [ "$SCHEME" = "{branch}/api-doc" ]; then
+            echo "base_url=/${SLUG}/api-doc" >> "$GITHUB_OUTPUT"
+            echo "deploy_path=${SLUG}/api-doc" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_url=/api-doc/${SLUG}" >> "$GITHUB_OUTPUT"
+            echo "deploy_path=api-doc/${SLUG}" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "Scheme: $SCHEME"
+          echo "Slug: $SLUG"
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -36,6 +82,8 @@ jobs:
 
       - name: Build API documentation site
         run: npm run build
+        env:
+          DOCS_BASE_URL: ${{ steps.compute-paths.outputs.base_url }}
 
       - name: Deploy API docs to staging server with Rsync
         run: |
@@ -53,6 +101,9 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
+          DEPLOY_PATH="${{ steps.compute-paths.outputs.deploy_path }}"
+          echo "Deploying to: /home/pmm/pmm-deploy/tomcat/webapps/ROOT/${DEPLOY_PATH}"
+
           rsync -avz --delete \
           -e "ssh -i ~/.ssh/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" \
-          build/* pmm@staging.amuselabs.com:/home/pmm/pmm-deploy/tomcat/webapps/ROOT/api-doc
+          build/* pmm@staging.amuselabs.com:/home/pmm/pmm-deploy/tomcat/webapps/ROOT/${DEPLOY_PATH}
