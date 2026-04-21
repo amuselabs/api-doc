@@ -1,0 +1,58 @@
+# This workflow builds the main (or any) branch of the API doc repository
+# and deploys it to the sandbox server via rsync over SSH.
+# Trigger: manual (workflow_dispatch) — no automated push trigger.
+
+name: Deploy API documentation on sandbox
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Print GitHub context
+        run: |
+          echo "Repository is ${{ github.repository }}"
+          echo "Full commit SHA: ${{ github.sha }}"
+          echo "Actor is ${{ github.actor }}"
+          echo "Ref is ${{ github.ref }}"
+          echo "Branch is ${{ github.ref_name }}"
+          echo "Workspace is ${{ github.workspace }}"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build API documentation site
+        run: npm run build
+
+      - name: Deploy API docs to sandbox server with Rsync
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SANDBOX_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H sandbox.amuselabs.com >> ~/.ssh/known_hosts
+
+          # Create SSH config to restrict key usage
+          cat >> ~/.ssh/config <<EOF
+          Host sandbox.amuselabs.com
+          IdentityFile ~/.ssh/id_rsa
+          IdentitiesOnly yes
+          StrictHostKeyChecking no
+          EOF
+          chmod 600 ~/.ssh/config
+
+          rsync -avz --delete \
+          -e "ssh -i ~/.ssh/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=no" \
+          build/* pmm@sandbox.amuselabs.com:/home/pmm/pmm-deploy/tomcat/webapps/ROOT/api-doc

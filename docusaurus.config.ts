@@ -21,7 +21,9 @@ const config: Config = {
   // Use SITE_URL env var for staging/production deploys; defaults to GitHub Pages
   url: process.env.SITE_URL || 'https://amuselabs.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
-  baseUrl: '/api-doc/',
+  // For GitHub pages deployment, it is often '/<projectName>/'
+  // Can be overridden via DOCS_BASE_URL env var for multi-branch staging deploys.
+  baseUrl: process.env.DOCS_BASE_URL || '/api-doc',
 
   // GitHub pages deployment config.
   organizationName: 'amuselabs',
