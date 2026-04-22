@@ -561,15 +561,47 @@ paths:
     post:
       summary: Create a new series
       description: |
-        Creates a new series, optionally with an initial set of hierarchical player+picker settings.
+        Creates a new series, optionally with an initial set of series settings.
+
+        **Series naming — how your `series` value becomes the final identifier**
+
+        The `series` value you send is treated as a **suffix**. The server always prepends your
+        account id and a hyphen to form the final series identifier:
+
+        ```
+        final series = <your-account-id> + "-" + <series you sent in the body>
+        ```
+
+        For example, if your account id is `acme` and you send `"series": "fall-2024-crosswords"`,
+        the series is stored as `acme-fall-2024-crosswords`. The response echoes the final
+        identifier back in its `series` field — **use that value** (not the one you sent) for any
+        subsequent `GET` / `PATCH` / `DELETE` call.
+
+        **Valid `series` suffix**
+
+        - Allowed characters: lowercase letters (`a-z`), digits (`0-9`), and hyphens (`-`).
+        - Disallowed: uppercase letters, spaces, and any other punctuation. The server does not
+          silently strip or truncate — any disallowed character returns a 400 error.
+        - Length: non-empty and at most 64 characters. Overlength input returns a 400 error.
+        - Note: the final stored identifier is `<account-id>-<suffix>`, so a very long account id
+          combined with a 64-character suffix may exceed internal storage limits. Prefer shorter,
+          descriptive suffixes.
+
+        **Valid `seriesDisplayName`**
+
+        - Allowed characters: any printable text, including spaces, punctuation, and non-ASCII.
+        - Disallowed: none — there are no character restrictions.
+        - Length: non-empty and at most 100 characters.
 
         **Body fields:**
-        - `series` *(string, required)* — unique identifier for the new series. Must match the series
-          naming rules.
-        - `seriesDisplayName` *(string, required)* — human-readable display name.
-        - `settings` *(object, optional)* — hierarchical player+picker settings to apply immediately
-          after creation (same schema as returned by `GET /api/v1/series?includeSettings=true`).
-          If omitted, the new series is created with default settings.
+        - `series` *(string, required)* — suffix for the new series identifier (see above).
+        - `seriesDisplayName` *(string, required)* — human-readable display name shown in the
+          dashboard and in the player UI.
+        - `settings` *(object, optional)* — series settings to apply immediately after creation. See
+          the [series settings documentation](https://amuselabs.com/docs/managing-puzzles/settings/)
+          for what each setting does; the shape is the same as the one returned by
+          `GET /api/v1/series?includeSettings=true` and accepted by `PATCH /api/v1/series`. If
+          omitted, the new series is created with default settings.
 
         **Unknown settings paths** (e.g., a typo under `settings.scoring.*`) cause a 400 error — same
         strict path validation as `PATCH /api/v1/series`.
@@ -635,20 +667,23 @@ paths:
           description: |
             Series created successfully. If initial `settings` were provided, they have been applied.
 
-            Response body is intentionally minimal — just the base `{status: 0}` envelope, aligned
-            with the `PATCH /api/v1/series` contract. If you need the post-create state (e.g., the
-            final series identifier with any account-handle prefix the server may have applied, or
-            the resulting hierarchical settings), follow up with
-            `GET /api/v1/series?series=X&includeSettings=true`.
+            Response returns `{status, series}`. The `series` field holds the **final** identifier —
+            i.e., your request's `series` value prefixed with your account id and a hyphen. It will
+            differ from what you sent in the request body. Use the returned `series` value for all
+            subsequent `GET` / `PATCH` / `DELETE` calls.
+
+            For the post-create series settings, follow up with
+            `GET /api/v1/series?series=<returned-series>&includeSettings=true`.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SeriesPostResponse'
               examples:
                 success:
-                  summary: Successful create
+                  summary: Successful create (account handle `acme`)
                   value:
                     status: 0
+                    series: "acme-fall-2024-crosswords"
         '400':
           description: |
             Bad request. Common causes:
@@ -1459,7 +1494,7 @@ components:
       type: object
       description: |
         Request body for `POST /api/v1/series` — creates a new series, optionally with an initial
-        set of hierarchical player+picker settings. Send as `Content-Type: application/json`.
+        set of series settings. Send as `Content-Type: application/json`.
       required:
         - series
         - seriesDisplayName
@@ -1467,31 +1502,64 @@ components:
         series:
           type: string
           description: |
-            Unique identifier for the new series. Must match the series naming rules (alphanumeric +
-            hyphens, max length enforced). For non-superadmin callers, the account handle is
-            auto-prefixed server-side.
-            Example: "fall-2024-crosswords"
+            Suffix for the new series identifier. The server prepends your account id and a hyphen,
+            so the final identifier stored server-side is `<your-account-id>-<this-value>`.
+
+            Allowed characters: lowercase letters (`a-z`), digits (`0-9`), and hyphens (`-`).
+            Disallowed: uppercase letters, spaces, and any other punctuation. Must be non-empty and
+            at most 64 characters. Any disallowed character or overlength input returns a 400 error.
+
+            The response's `series` field contains the final identifier — use that value for
+            subsequent `GET` / `PATCH` / `DELETE` calls.
+
+            Example: sending `"fall-2024-crosswords"` under account `acme` yields the final series
+            identifier `acme-fall-2024-crosswords`.
         seriesDisplayName:
           type: string
           description: |
             Human-readable display name for the series. Shown in the dashboard and — when the series
             is rendered — in the player UI.
+
+            Allowed characters: any printable text, including spaces, punctuation, and non-ASCII.
+            No character restrictions. Must be non-empty and at most 100 characters.
+
             Example: "Fall 2024 Crosswords"
         settings:
-          $ref: '#/components/schemas/PlayerSettings'
+          allOf:
+            - $ref: '#/components/schemas/PlayerSettings'
+          description: |
+            Series settings to apply immediately after creation. Optional — if omitted, the new
+            series starts with default settings. See the
+            [series settings documentation](https://amuselabs.com/docs/managing-puzzles/settings/)
+            for what each setting does; this is the same shape returned by
+            `GET /api/v1/series?includeSettings=true` and accepted by `PATCH /api/v1/series`.
+            Unknown paths return a 400 error.
 
     SeriesPostResponse:
       type: object
       description: |
-        Response from `POST /api/v1/series`. Intentionally minimal — just the base `status` envelope.
-        Aligned with the `PATCH /api/v1/series` contract: POST is a pure write, and callers that
-        need the post-create state (final identifier, resulting settings) follow up with
-        `GET /api/v1/series?series=X&includeSettings=true`.
+        Response from `POST /api/v1/series`. Returns the base `status` envelope plus the final
+        `series` identifier. Settings and other derived state are not included — callers that need
+        the post-create settings follow up with `GET /api/v1/series?series=X&includeSettings=true`.
+      required:
+        - status
+        - series
       properties:
         status:
           type: integer
           description: Response status code (0 for success)
           example: 0
+        series:
+          type: string
+          description: |
+            Final series identifier as stored server-side: your request's `series` value prefixed
+            with your account id and a hyphen. This will differ from the value you sent in the
+            request body. Use this returned value — not the value you sent — for all subsequent
+            `GET` / `PATCH` / `DELETE` calls.
+
+            Example: `"acme-fall-2024-crosswords"` (account id `acme`, request `series` was
+            `"fall-2024-crosswords"`).
+          example: "acme-fall-2024-crosswords"
 
     PlayerSettings:
       type: object
