@@ -163,6 +163,7 @@ paths:
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
                         - title: "Daily Crossword"
+                          subtitle: "Themed Edition"
                           author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
@@ -173,6 +174,7 @@ paths:
                           gridHeight: 15
                           numWords: 78
                         - title: "Sample Puzzle"
+                          subtitle: ""
                           author: "John Doe"
                           puzzleId: "50a2ab68"
                           puzzleType: "CROSSWORD"
@@ -193,6 +195,7 @@ paths:
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
                         - title: "Daily Crossword"
+                          subtitle: "Themed Edition"
                           author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
@@ -959,6 +962,7 @@ components:
           example:
             api-demo-crossword:
               - title: "Daily Crossword"
+                subtitle: "Themed Edition"
                 author: "Jane Smith"
                 puzzleId: "82e56966"
                 puzzleType: "CROSSWORD"
@@ -990,7 +994,7 @@ components:
         subtitle:
           type: string
           description: Puzzle subtitle. Optional — returned as `""` when not set on the puzzle.
-          example: ""
+          example: "Themed Edition"
         author:
           type: string
           description: Puzzle author/constructor name. Optional — returned as `""` when not set on the puzzle.
