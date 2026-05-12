@@ -739,7 +739,7 @@ paths:
     get:
       summary: Get user fields
       description: |
-        Retrieves lead generation field data submitted by a specific user for a puzzle within a series.
+        Retrieves lead generation field data submitted by a given user for a puzzle within a given series.
         Fields are returned as key-value pairs in a `fields` object using keys `field_1`, `field_2`, and `field_3`.
 
         **What are user fields?**
@@ -750,7 +750,7 @@ paths:
         configured with labels and input types (text, numbers, or email) in the series settings,
         and are represented in the API as `field_1`, `field_2`, and `field_3`.
 
-        **Field Keys:**
+        **Fields:**
         Fields use keys `field_1`, `field_2`, and `field_3`. The label and validation type for each
         field are defined in the series settings under
         [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
@@ -764,7 +764,7 @@ paths:
 
         **Examples:**
 
-        **Get user fields for a specific puzzle:**
+        **Get user fields for a given puzzle:**
         ```bash
         curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
@@ -793,7 +793,7 @@ paths:
           schema:
             type: string
           description: |
-            Puzzle identifier to retrieve fields for a specific puzzle.
+            Puzzle identifier to retrieve fields for a given puzzle.
             Example: "daily-2024-01-15"
       responses:
         '200':
@@ -889,7 +889,7 @@ paths:
     post:
       summary: Set user fields
       description: |
-        Sets lead generation field data for a specific user and puzzle within a series.
+        Sets lead generation field data for a given user, a puzzle, and a given series.
         If a field already exists for this user and puzzle, its value is overwritten.
 
         **What are user fields?**
@@ -900,7 +900,7 @@ paths:
         configured with labels and input types (text, numbers, or email) in the series settings,
         and are represented in the API as `field_1`, `field_2`, and `field_3`.
 
-        **Field Keys:**
+        **Fields:**
         Fields use keys `field_1`, `field_2`, and `field_3`. The label and validation type for each
         field are defined in the series settings under
         [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
@@ -946,7 +946,7 @@ paths:
           schema:
             type: string
           description: |
-            Puzzle identifier to scope the fields to a specific puzzle.
+            Puzzle identifier to scope the fields to a given puzzle.
             Example: "daily-2024-01-15"
       requestBody:
         required: true
@@ -981,16 +981,16 @@ paths:
                   value:
                     status: 0
         '400':
-          description: Bad request (invalid field keys, validation failure, or missing parameters)
+          description: Bad request (invalid fields, validation failure, or missing parameters)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                invalid_field_key:
-                  summary: Unknown field key
+                invalid_field_name:
+                  summary: Unknown field name
                   description: |
-                    Error when the request body contains a key not in the allowed set (`field_1`, `field_2`, and `field_3`).
+                    Error when the request body contains a field name not in the allowed set (`field_1`, `field_2`, and `field_3`).
                   value:
                     status: 1
                     errorCode: 10
