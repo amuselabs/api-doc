@@ -740,18 +740,6 @@ paths:
         Fetches aggregated stats for a user given a series. The response includes started-puzzle metrics
         (counts and streaks) and completed-puzzle metrics (counts, streaks, and solve-time aggregates when available).
 
-        **Response field guide:**
-        - `userStats.userId`: User identifier used for the aggregation.
-        - `userStats.series`: Series identifier for which stats are computed.
-        - `userStats.stats.started.count`: Total puzzles started.
-        - `userStats.stats.started.currentStreak`: Current streak of consecutive published puzzles started without breaking the sequence.
-        - `userStats.stats.started.longestStreak`: Longest streak of consecutive published puzzles started.
-        - `userStats.stats.completed.count`: Total puzzles solved/completed.
-        - `userStats.stats.completed.currentStreak`: Current streak of consecutive puzzles solved before the next puzzle was published.
-        - `userStats.stats.completed.longestStreak`: Longest streak of consecutive puzzles solved before the next puzzle was published.
-        - `userStats.stats.completed.totalSolveTime`: Total solve time in seconds (nullable).
-        - `userStats.stats.completed.fastestSolveTime`: Fastest solve time in seconds (nullable).
-
         **Example:**
 
         ```bash
