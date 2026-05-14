@@ -44,8 +44,12 @@ paths:
 
         **2. Time Range Request:**
         Returns a list of puzzles within a given time range, sorted by publish time in descending order (newest first).
-        - Requires `series`.
-        - `from` and `to` define the time range (both must be in ISO 8601 format with a timezone offset).
+        - This mode is triggered when `puzzleIds` is absent.
+        - Required parameters: `series`. Optional: `from`, `to`.
+        - `from` and `to` must be in ISO 8601 format **with a timezone offset** (e.g. `2024-01-01T00:00:00Z` or `2024-01-01T00:00:00+05:30`). A datetime without a timezone offset is rejected with `Invalid parameter`.
+        - If `from` is omitted, it defaults to `2013-01-01T00:00:00Z`.
+        - If `to` is omitted, it defaults to the current server time.
+        - Any combination of `from`/`to` is accepted (both, either alone, or neither).
         - `limit` and `offset` can be used for pagination.
         - `hasMore` is a boolean indicating if there are more puzzles available for pagination.
 
@@ -161,6 +165,7 @@ paths:
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
                         - title: "Daily Crossword"
+                          subtitle: "Themed Edition"
                           author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
@@ -171,6 +176,7 @@ paths:
                           gridHeight: 15
                           numWords: 78
                         - title: "Sample Puzzle"
+                          subtitle: ""
                           author: "John Doe"
                           puzzleId: "50a2ab68"
                           puzzleType: "CROSSWORD"
@@ -191,6 +197,7 @@ paths:
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
                         - title: "Daily Crossword"
+                          subtitle: "Themed Edition"
                           author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
@@ -411,6 +418,13 @@ paths:
             A comma-separated list of dimensions to group the data by.
             **Load Dimensions:** `DAY`, `LOAD_TYPE`, `AD_STATE`, `LOGIN_STATUS`, `DEVICE`, `BROWSER`, `OS`.
             **Play Dimensions:** `DAY`, `PLAY_STATE`, `PUZZLE_TYPE`.
+
+            **`PLAY_STATE` values** — when grouping by `PLAY_STATE`, the dimension value in the response is one of:
+              - `STARTED` — play started; no progress recorded yet
+              - `SOME_FILLED` — user has filled some cells/answers but not all
+              - `ALL_FILLED_SOME_WRONG` — all cells/answers filled; at least one is incorrect
+              - `ALL_FILLED_CORRECT` — all cells/answers filled and correct (completed correctly)
+              - `ROW_LOCKED` — contest-mode only; row has been locked
         - name: metrics
           in: query
           required: true
@@ -493,11 +507,12 @@ paths:
         - **Jigsaw**: Piece placement progress
         
         **Time Range Filtering:**
-        - Use `from` (inclusive) and/or `to` (inclusive) to filter plays by start time (`startedAt`, ISO 8601 format).
-        - If neither is provided, all plays are considered.
-        - If only `from` is provided, plays from that time onwards are considered.
-        - If only `to` is provided, plays up to that time are considered.
-        - If both are provided, plays between `from` and `to` (inclusive) are considered.
+        - Use `from` (inclusive) and `to` (inclusive) to filter plays by start time (`startedAt`).
+        - `from` and `to` must be in ISO 8601 format **with a timezone offset** (e.g. `2024-01-01T00:00:00Z` or `2024-01-01T00:00:00+05:30`).
+        - A datetime without a timezone offset is rejected with `Invalid parameter`.
+        - Provide `from` and `to` as a pair. If both are omitted, all plays for the user are returned (`from` defaults to `2013-01-01T00:00:00Z`; `to` defaults to current server time).
+        - If both are provided, plays whose `startedAt` falls in `[from, to]` are returned.
+        - Providing only one of `from` or `to` is rejected with `Invalid parameter`. Note: this differs from the Puzzles API, which accepts any combination of `from`/`to`.
        
         **Pagination and Ordering:**
         Results are paginated with the `limit` and `offset` query parameters and are ordered by **`startedAt` in descending order** (most recent starts first).
@@ -508,7 +523,6 @@ paths:
         4. Repeat step 3 until a response returns `hasMore` field as false, indicating there are no more results.
         
         **Use Cases:**
-        - **Streak Computation:** Use `startedAt` and `updatedAt` combined with `playProgress` fields to compute user streaks. For example, calculate consecutive days a user has completed puzzles by checking if `startedAt` and `updatedAt` fall on the puzzle's publish date and the `playProgress.playState` indicates completion.
         - **Puzzle Details:** To get detailed information about the puzzles corresponding to the returned play IDs, use the separate Puzzles API endpoint (`/api/v1/puzzles`) with the `puzzleIds` parameter containing the puzzle IDs from the plays response.
  
        
@@ -564,9 +578,9 @@ paths:
             type: string
             format: date-time
           description: |
-            Start time for play start time range (`startedAt`) in ISO 8601 format (UTC).
-            Defaults to 2013-01-01T00:00:00Z if not specified.
-            Example: "2024-01-01T00:00:00Z"
+            Start time for play start time range (`startedAt`) in ISO 8601 format with timezone offset.
+            Defaults to `2013-01-01T00:00:00Z` if not specified.
+            Example: "2024-01-01T00:00:00Z" or "2024-01-01T00:00:00+05:30"
         - name: to
           in: query
           required: false
@@ -574,8 +588,9 @@ paths:
             type: string
             format: date-time
           description: |
-            End time for play start time range (`startedAt`) in ISO 8601 format (UTC).
-            Example: "2024-01-31T23:59:59Z"
+            End time for play start time range (`startedAt`) in ISO 8601 format with timezone offset.
+            Defaults to the current server time if not specified (only when both `from` and `to` are omitted).
+            Example: "2024-01-31T23:59:59Z" or "2024-01-31T23:59:59+05:30"
         - name: limit
           in: query
           required: false
@@ -1267,6 +1282,7 @@ components:
           example:
             api-demo-crossword:
               - title: "Daily Crossword"
+                subtitle: "Themed Edition"
                 author: "Jane Smith"
                 puzzleId: "82e56966"
                 puzzleType: "CROSSWORD"
@@ -1281,36 +1297,48 @@ components:
           description: Indicates if there are more puzzles available. When true, use limit and offset parameters to fetch the next page of results.
     BaseFormattedPuzzleMetadata:
       type: object
-      description: Base puzzle metadata containing common fields for all puzzle types
+      description: |
+        Base puzzle metadata containing common fields for all puzzle types.
+        Fields listed under `required` are guaranteed present in every response.
+        Other fields are returned as an empty string (`""`) when not set on the puzzle.
+      required:
+        - puzzleId
+        - puzzleType
+        - publicationTime
+        - publicationTimeZone
       properties:
         title:
           type: string
-          description: Puzzle title
+          description: Puzzle title. Optional — returned as `""` when not set on the puzzle.
           example: "Daily Crossword"
+        subtitle:
+          type: string
+          description: Puzzle subtitle. Optional — returned as `""` when not set on the puzzle.
+          example: "Themed Edition"
         author:
           type: string
-          description: Puzzle author/constructor name
+          description: Puzzle author/constructor name. Optional — returned as `""` when not set on the puzzle.
           example: "Jane Smith"
         puzzleId:
           type: string
-          description: Unique puzzle identifier
+          description: Unique puzzle identifier. Always present.
           example: "82e56966"
         puzzleType:
           type: string
           enum: [CROSSWORD, CODEWORD, KRISSKROSS, SUDOKU, QUIZ, WORDSEARCH, WORDFLOWER, JIGSAW]
-          description: Type of puzzle
+          description: Type of puzzle. Always present.
           example: "CROSSWORD"
         publicationTime:
           type: integer
-          description: Publication timestamp in milliseconds since epoch (UTC)
+          description: Publication timestamp in milliseconds since epoch (UTC). Always present.
           example: 1701286140000
         publicationTimeZone:
           type: string
-          description: Timezone of the publication time
+          description: Timezone of the publication time. Always present.
           example: "America/New_York"
         thumbnailURL:
           type: string
-          description: URL to the puzzle thumbnail image
+          description: URL to the puzzle thumbnail image. Optional — returned as `""` when no thumbnail is set on the puzzle.
           example: "https://amuselabs.com/wp-content/uploads/2022/03/crossword_icon.png"
     GridGameMetadata:
       allOf:
