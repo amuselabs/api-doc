@@ -39,23 +39,6 @@ With these APIs, you can:
 **Getting Started**
 To use these APIs, you will need authentication credentials `client_id` and `client_secret`. You can obtain these by contacting support@amuselabs.com
 
-**Error Responses**
-All endpoints use standard HTTP status codes for errors (4xx for caller-fault, 5xx for server-fault), following the spirit of [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807). The response body for an error always has the same shape:
-```json
-{
-  "status": 1,
-  "errorCode": 116,
-  "errorMessage": "Invalid parameter value for userId",
-  "errorDetails": { "...": "..." }
-}
-```
-- `status` is always `1` for error responses (and `0` for success).
-- `errorCode` is a numeric identifier for the specific error condition. The same HTTP status (e.g. `400`) can correspond to several different `errorCode` values — branch on `errorCode` when you need to distinguish between, say, "missing required parameter" and "parameter value out of range".
-- `errorMessage` is a human-readable description suitable for display to end users.
-- `errorDetails` carries optional additional context (varies by error type; may be `null` or omitted).
-
-Common error responses (`401`, `403`, `404`, `500`, `502`, `503`) apply across most endpoints and are documented in the response schemas; endpoint-specific `400` (and other 4xx) errors are listed under each endpoint with the corresponding `errorCode` value and condition.
-
 **Metering**
 We are in the process of introducing usage-based metering for this API suite. While metering is not currently active, we encourage you to design your integration with this in mind. Once metering is enabled, you may be subject to usage limits and billing based on your API consumption.
 

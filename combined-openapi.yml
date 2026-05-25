@@ -13,23 +13,6 @@ info:
     **Getting Started**
     To use these APIs, you will need authentication credentials `client_id` and `client_secret`. You can obtain these by contacting support@amuselabs.com
 
-    **Error Responses**
-    All endpoints use standard HTTP status codes for errors (4xx for caller-fault, 5xx for server-fault), following the spirit of [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807). The response body for an error always has the same shape:
-    ```json
-    {
-      "status": 1,
-      "errorCode": 116,
-      "errorMessage": "Invalid parameter value for userId",
-      "errorDetails": { "...": "..." }
-    }
-    ```
-    - `status` is always `1` for error responses (and `0` for success).
-    - `errorCode` is a numeric identifier for the specific error condition. The same HTTP status (e.g. `400`) can correspond to several different `errorCode` values — branch on `errorCode` when you need to distinguish between, say, "missing required parameter" and "parameter value out of range".
-    - `errorMessage` is a human-readable description suitable for display to end users.
-    - `errorDetails` carries optional additional context (varies by error type; may be `null` or omitted).
-
-    Common error responses (`401`, `403`, `404`, `500`, `502`, `503`) apply across most endpoints and are documented in the response schemas; endpoint-specific `400` (and other 4xx) errors are listed under each endpoint with the corresponding `errorCode` value and condition.
-
     **Metering**
     We are in the process of introducing usage-based metering for this API suite. While metering is not currently active, we encourage you to design your integration with this in mind. Once metering is enabled, you may be subject to usage limits and billing based on your API consumption.
 servers:
@@ -1161,9 +1144,7 @@ components:
   schemas:
     ErrorResponse:
       type: object
-      description: |
-        Standard error response body shape, returned with every 4xx/5xx HTTP status.
-        See the API Overview for the meaning of each field.
+      description: Error response body.
       required:
         - status
         - errorCode
@@ -1172,20 +1153,20 @@ components:
         status:
           type: integer
           enum: [1]
-          description: Always `1` for error responses (`0` for success). Matches the body shape used by v1 endpoints for backward compatibility.
+          description: Always `1` for error responses (`0` for success).
           example: 1
         errorCode:
           type: integer
-          description: Numeric identifier for the specific error condition. Multiple `errorCode` values can map to the same HTTP status — branch on this when you need to distinguish error subtypes.
+          description: Numeric identifier for the specific error condition.
           example: 116
         errorMessage:
           type: string
-          description: Human-readable error message suitable for display to end users.
+          description: Human-readable error message.
           example: "Invalid parameter value for userId"
         errorDetails:
           type: object
           nullable: true
-          description: Optional additional context about the error. Shape varies by error type; may be `null` or omitted.
+          description: Optional additional context about the error.
     GetPlaysResponse:
       type: object
       description: Response containing list of plays with puzzle type specific state details
