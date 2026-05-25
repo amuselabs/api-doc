@@ -13,6 +13,23 @@ info:
     **Getting Started**
     To use these APIs, you will need authentication credentials `client_id` and `client_secret`. You can obtain these by contacting support@amuselabs.com
 
+    **Error Responses**
+    All endpoints use standard HTTP status codes for errors (4xx for caller-fault, 5xx for server-fault), following the spirit of [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807). The response body for an error always has the same shape:
+    ```json
+    {
+      "status": 1,
+      "errorCode": 116,
+      "errorMessage": "Invalid parameter value for userId",
+      "errorDetails": { "...": "..." }
+    }
+    ```
+    - `status` is always `1` for error responses (and `0` for success).
+    - `errorCode` is a numeric identifier for the specific error condition. The same HTTP status (e.g. `400`) can correspond to several different `errorCode` values — branch on `errorCode` when you need to distinguish between, say, "missing required parameter" and "parameter value out of range".
+    - `errorMessage` is a human-readable description suitable for display to end users.
+    - `errorDetails` carries optional additional context (varies by error type; may be `null` or omitted).
+
+    Common error responses (`401`, `403`, `404`, `500`, `502`, `503`) apply across most endpoints and are documented in the response schemas; endpoint-specific `400` (and other 4xx) errors are listed under each endpoint with the corresponding `errorCode` value and condition.
+
     **Metering**
     We are in the process of introducing usage-based metering for this API suite. While metering is not currently active, we encourage you to design your integration with this in mind. Once metering is enabled, you may be subject to usage limits and billing based on your API consumption.
 servers:
@@ -31,7 +48,7 @@ tags:
   - name: User Fields
     x-displayName: User Fields
 paths:
-  /api/v1/puzzles:
+  /api/v2/puzzles:
     get:
       summary: Retrieve puzzle metadata
       description: |
@@ -69,19 +86,19 @@ paths:
         
         **Specific Puzzle Request:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&puzzleIds=82e56966' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/puzzles?series=api-demo-crossword&puzzleIds=82e56966' \
         -H 'Accept: application/json'
         ```
         
         **Multiple Puzzles Request:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&puzzleIds=82e56966,50a2ab68,a7b2b0e0' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/puzzles?series=api-demo-crossword&puzzleIds=82e56966,50a2ab68,a7b2b0e0' \
         -H 'Accept: application/json'
         ```
         
         **Time Range Request (Last 30 days):**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&from=2024-01-01T00:00:00Z&to=2024-01-31T23:59:59Z&limit=10&offset=0' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/puzzles?series=api-demo-crossword&from=2024-01-01T00:00:00Z&to=2024-01-31T23:59:59Z&limit=10&offset=0' \
         -H 'Accept: application/json'
         ```
       parameters:
@@ -202,7 +219,12 @@ paths:
                           numWords: 78
                     hasMore: false
         '400':
-          description: Bad request (missing/invalid parameters)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `puzzleIds` count exceeds 30 (specific-puzzles mode).
+              - `from` or `to` not in ISO 8601 format with a timezone offset.
+              - `series` is missing.
           content:
             application/json:
               schema:
@@ -210,32 +232,35 @@ paths:
               examples:
                 too_many_puzzle_ids:
                   summary: Too many puzzle IDs
-                  description: Error response when more than 30 puzzle IDs are provided
+                  description: Returned when more than 30 puzzle IDs are provided.
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for puzzleIds"
                     errorDetails:
                       paramName: "puzzleIds"
-                      value: "Maximum 30 puzzle IDs are allowed in a single request. Received: 150"
+                      paramValue: "150"
+                      contextMessage: "Maximum 30 puzzle IDs allowed per request"
                 missing_required_parameter:
                   summary: Missing required parameter
-                  description: Error response when a required parameter is missing
+                  description: Returned when a required parameter is missing.
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for series"
                     errorDetails:
                       paramName: "series"
         '401':
-          description: Unauthorized (invalid or missing API token)
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden (no access to series)
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
       tags:
         - Puzzles
-  /api/v1/series:
+  /api/v2/series:
     get:
       summary: Retrieve series information
       description: |
@@ -266,14 +291,14 @@ paths:
         
         **List All Series:**
         ```bash
-        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series' \
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/series' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
         
         **Get Specific Series:**
         ```bash
-        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/series?series=api-demo-crossword' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
@@ -333,28 +358,30 @@ paths:
                     status: 0
                     seriesList: []
         '400':
-          description: Bad request (missing/invalid parameters)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation (malformed query parameters).
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: Unauthorized (invalid or missing API token)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden (no access to account or series)
+          description: |
+            Caller is authenticated but not allowed to access the requested resource. Possible `errorCode` values for this endpoint:
+            - `NO_ACCESS_TO_SET` (84) — caller has no access to the requested series.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
       tags:
         - Series
-  /api/v1/reporting:
+  /api/v2/reporting:
     get:
       summary: Get series or puzzle specific aggregate metrics
       description: |
@@ -441,16 +468,56 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReportResponseAPI'
         '400':
-          description: Bad Request - Missing required parameters or inconsistent parameters (e.g., requesting load metrics with play dimensions).
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `series`, `from`, or `duration` is missing.
+              - `dimensions` or `metrics` is missing or empty.
+              - `metrics` mixes load metrics with play metrics (must be all load or all play).
+              - `dimensions` includes a play-only dimension when load metrics were requested (or vice versa).
+              - `from` is not in ISO 8601 format with a timezone offset, or `duration` is outside the allowed range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_required_parameter:
+                  summary: Missing required parameter
+                  description: Returned when `dimensions` is missing.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for dimensions"
+                    errorDetails:
+                      paramName: "dimensions"
+                mixed_metric_types:
+                  summary: Mixed load and play metrics
+                  description: Returned when load and play metrics are requested together.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for metrics"
+                    errorDetails:
+                      paramName: "metrics"
+                      contextMessage: "Cannot mix load metrics with play metrics in a single request"
         '401':
-          description: Unauthorized - Missing or invalid API token.
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden - The user does not have permission to access the requested series.
+          description: |
+            Caller is authenticated but not allowed to access the requested resource. Possible `errorCode` values for this endpoint:
+            - `NO_ACCESS_TO_SET` (84) — caller has no access to the requested series.
+            - `DISALLOWED_OPERATION_FOR_SET` (89) — the reporting operation is not permitted for this series.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
       tags:
-        - Plays
-  /api/v1/token:
+        - Analytics
+  /api/v2/token:
     post:
       summary: Generate API token
       description: >
@@ -475,10 +542,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenResult'
         '400':
-          description: Bad request (missing/invalid credentials)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — `client_id` or `client_secret` is missing or empty.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_client_id:
+                  summary: Missing client_id
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for client_id"
+                    errorDetails:
+                      paramName: "client_id"
+        '401':
+          description: |
+            Authentication failed. Possible `errorCode` values for this endpoint:
+            - `INVALID_API_CREDENTIALS` (97) — `client_id`/`client_secret` pair is invalid or has been revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: |
+            Caller is authenticated but not allowed to mint tokens. Possible `errorCode` values for this endpoint:
+            - `DISALLOWED_OPERATION` (88) — the account is not permitted to use API token authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       tags:
         - Auth
-  /api/v1/plays:
+  /api/v2/plays:
     get:
       summary: Get plays for a given user
       description: |
@@ -509,25 +609,25 @@ paths:
         
         **Use Cases:**
         - **Streak Computation:** Use `startedAt` and `updatedAt` combined with `playProgress` fields to compute user streaks. For example, calculate consecutive days a user has completed puzzles by checking if `startedAt` and `updatedAt` fall on the puzzle's publish date and the `playProgress.playState` indicates completion.
-        - **Puzzle Details:** To get detailed information about the puzzles corresponding to the returned play IDs, use the separate Puzzles API endpoint (`/api/v1/puzzles`) with the `puzzleIds` parameter containing the puzzle IDs from the plays response.
+        - **Puzzle Details:** To get detailed information about the puzzles corresponding to the returned play IDs, use the separate Puzzles API endpoint (`/api/v2/puzzles`) with the `puzzleIds` parameter containing the puzzle IDs from the plays response.
  
        
         **Examples:**
         
         **Single Puzzle Play for given User:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&puzzleIds=123ba400&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/plays?series=demo-api&puzzleIds=123ba400&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
         -H 'Accept: application/json'
         ```
         
         **Multiple Puzzle Plays (Comma-separated puzzle ids) for a given User:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&puzzleIds=123ba400,46892ef6&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/plays?series=demo-api&puzzleIds=123ba400,46892ef6&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
         -H 'Accept: application/json'
         ```
         **All Plays for a given User for a given series:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/plays?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
         -H 'Accept: application/json'
         ```
       parameters:
@@ -678,7 +778,13 @@ paths:
                         screenTimeSeconds: 1785
                     hasMore: false
         '400':
-          description: Bad request (missing/invalid parameters)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `userId` is missing.
+              - `series` is missing.
+              - `puzzleIds` count exceeds 30.
+              - `from`/`to` are partially specified (only one of the pair provided) or not in ISO 8601 with a timezone offset.
           content:
             application/json:
               schema:
@@ -686,56 +792,32 @@ paths:
               examples:
                 missing_required_parameter:
                   summary: Missing required parameter
-                  description: Error response when a required parameter is missing
+                  description: Returned when a required parameter is missing.
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for userId"
                     errorDetails:
-                      paramName: "series"
+                      paramName: "userId"
+                too_many_puzzle_ids:
+                  summary: Too many puzzle IDs
+                  description: Returned when more than 30 puzzle IDs are provided.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for puzzleIds"
+                    errorDetails:
+                      paramName: "puzzleIds"
+                      contextMessage: "Maximum 30 puzzle IDs allowed per request"
         '401':
-          description: Unauthorized (invalid or missing API token)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                expired_token:
-                  summary: Expired token
-                  description: Error response when the API token has expired
-                  value:
-                    status: 1
-                    errorCode: 6
-                    errorMessage: "Token expired"
-                    errorDetails:
-                      type: "EXPIRED_TOKEN"
-                invalid_token:
-                  summary: Invalid token
-                  description: Error response when the API token is invalid
-                  value:
-                    status: 1
-                    errorCode: 5
-                    errorMessage: "Invalid token"
-                    errorDetails:
-                      type: "INVALID_TOKEN"
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden (no access to series)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                no_access_to_series:
-                  summary: No access to series
-                  description: Error response when user doesn't have access to the requested series
-                  value:
-                    status: 1
-                    errorCode: 8
-                    errorMessage: "No access to series"
-                    errorDetails:
-                      series: "pm"
-                      type: "UNAUTHORIZED_ACCESS_TO_SET"
-  /api/v1/user-fields:
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v2/user-fields:
     get:
       summary: Get user fields
       description: |
@@ -766,7 +848,7 @@ paths:
 
         **Get user fields for a given puzzle:**
         ```bash
-        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
@@ -829,59 +911,36 @@ paths:
                     series: "demo-crossword"
                     fields: {}
         '400':
-          description: Bad request (missing or invalid parameters)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — `series`, `userId`, or `puzzleId` is missing.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
                 missing_series:
-                  summary: Missing required parameter
+                  summary: Missing series parameter
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for series"
                     errorDetails:
                       paramName: "series"
                 missing_user_id:
-                  summary: Missing userId
+                  summary: Missing userId parameter
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for userId"
                     errorDetails:
                       paramName: "userId"
         '401':
-          description: Unauthorized (missing or invalid API token)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                expired_token:
-                  summary: Expired token
-                  value:
-                    status: 1
-                    errorCode: 6
-                    errorMessage: "Token expired"
-                    errorDetails:
-                      type: "EXPIRED_TOKEN"
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden (no read access to series)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                no_access:
-                  summary: No access to series
-                  value:
-                    status: 1
-                    errorCode: 8
-                    errorMessage: "No access to series"
-                    errorDetails:
-                      series: "demo-crossword"
-                      type: "UNAUTHORIZED_ACCESS_TO_SET"
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
       tags:
@@ -918,7 +977,7 @@ paths:
 
         **Set user fields for a puzzle:**
         ```bash
-        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v2/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Content-Type: application/json' \
         -d '{"fields": {"field_1": "Jane Doe", "field_2": "jane@example.com"}}'
@@ -981,7 +1040,12 @@ paths:
                   value:
                     status: 0
         '400':
-          description: Bad request (invalid fields, validation failure, or missing parameters)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `series`, `userId`, or `puzzleId` is missing.
+              - Request body contains a field key outside the allowed set (`field_1`, `field_2`, `field_3`).
+              - A field value fails the validation rule configured for that field in the series (e.g. email format, numeric format).
           content:
             application/json:
               schema:
@@ -990,65 +1054,40 @@ paths:
                 invalid_field_name:
                   summary: Unknown field name
                   description: |
-                    Error when the request body contains a field name not in the allowed set (`field_1`, `field_2`, and `field_3`).
+                    Returned when the request body contains a field name not in the allowed set (`field_1`, `field_2`, `field_3`).
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for fields"
                     errorDetails:
                       paramName: "fields"
-                      value: "Unknown field key: field_99"
+                      contextMessage: "Unknown field key: field_99"
                 validation_failure:
                   summary: Field value fails validation
                   description: |
-                    Error when a field value does not satisfy the series-specific validation rule.
-                    For example, field_2 (email) must match the email format configured for this series.
+                    Returned when a field value does not satisfy the series-specific validation rule.
+                    For example, `field_2` (email) must match the email format configured for this series.
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for field_2"
                     errorDetails:
                       paramName: "field_2"
-                      value: "Value does not match required format for this series."
+                      contextMessage: "Value does not match required format for this series."
                 missing_series:
                   summary: Missing required parameter
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for series"
                     errorDetails:
                       paramName: "series"
         '401':
-          description: Unauthorized (missing or invalid API token)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                expired_token:
-                  summary: Expired token
-                  value:
-                    status: 1
-                    errorCode: 6
-                    errorMessage: "Token expired"
-                    errorDetails:
-                      type: "EXPIRED_TOKEN"
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden (no write access to series)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                no_access:
-                  summary: No write access to series
-                  value:
-                    status: 1
-                    errorCode: 8
-                    errorMessage: "No access to series"
-                    errorDetails:
-                      series: "demo-crossword"
-                      type: "UNAUTHORIZED_ACCESS_TO_SET"
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
       tags:
@@ -1060,9 +1099,99 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: |
-        Enter the JWT token obtained from the `/api/v1/token` endpoint.
+        Enter the JWT token obtained from the `/api/v2/token` endpoint.
         **Note:** You do not need to prefix the token with "Bearer ".
+  responses:
+    Unauthenticated:
+      description: |
+        Caller is not authenticated. The request did not include valid credentials, or the provided credentials have expired or are invalid.
+        Possible `errorCode` values:
+        - `UNAUTHENTICATED_ACCESS` (108) — no authentication presented when one was required.
+        - `INVALID_API_CREDENTIALS` (97) — `client_id`/`client_secret` invalid or revoked.
+        - `EXPIRED_TOKEN` (98) — bearer token expired.
+        - `INVALID_TOKEN` (99) — bearer token is malformed or signature invalid.
+        - `LOAD_INVALID_TOKEN` (28) — load token (picker/player flows) missing or invalid.
+        - `FAILED_AUTHENTICATION_ATTEMPT` (110) — credential validation failed.
+        - `NON_LOGGED_IN_SERIES` (18), `NON_LOGGED_IN_SERIES_USER_ACTIVITY` (100), `NON_LOGGED_IN_PDF_UPLOAD` (125) — missing auth credentials for a series that requires them.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: |
+        Caller is authenticated but not allowed to perform this operation. Reasons include lacking access to the targeted resource, plan-tier denial, quota exceeded, account state issues, or security policy violations.
+        Possible `errorCode` values:
+        - `NO_ACCESS_TO_SET` (84), `NO_WRITE_ACCESS_TO_SET` (85), `NO_SETS_FOR_AUTH` (86), `CONTENT_SET_NOT_WRITABLE` (87) — caller's access to the requested series/set is insufficient.
+        - `DISALLOWED_OPERATION` (88), `DISALLOWED_OPERATION_FOR_SET` (89) — the operation itself is not permitted in this context.
+        - `PERMISSION_DENIED` (114) — generic permission/plan-tier denial.
+        - `INVITE_QUOTA_EXCEEDED` (33), `MEDIA_UPLOAD_QUOTA_EXCEEDED` (111), `PUZZLE_CREATION_QUOTA_OVER` (112), `SERIES_CREATION_QUOTA_OVER` (113) — account-level quota reached for the operation.
+        - `ACCOUNT_EXPIRED` (95), `DEBOARDED_ACCOUNT_ACCESS` (115), `INACTIVE_USER` (137) — account/user is in a state that disallows the operation.
+        - `UNAUTHORIZED_MEDIA_SERVER_URL` (119) — referenced URL is not on the allow-list.
+        - `UNPUBLISHED_PUZZLE` (2) — puzzle exists but is not published.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: |
+        The requested resource does not exist. The set of possible `errorCode` values depends on the endpoint (e.g. `PUZZLE_NOT_FOUND`, `SERIES_NOT_FOUND`, `NO_LOAD_FOUND`, `ACCOUNT_NOT_FOUND`, `PLAY_NOT_FOUND`); see the endpoint's own description for the specific codes it can return.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: |
+        An internal server error occurred while processing the request. This indicates a problem on our end — your request was well-formed. The request may succeed if retried.
+        Possible `errorCode` values include database failures (`IO_FAILURE` (128), internal DB errors), persistence write failures, server-side configuration issues, and unexpected generation/algorithm failures. The `errorMessage` will typically describe the failed operation generically.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadGateway:
+      description: |
+        An upstream service we depend on (Auth0, Stripe, translation service, etc.) returned an error or was unreachable. The request may succeed if retried after a short delay.
+        Possible `errorCode` values include `TRANSLATION_SERVICE_FAILURE` (215) and Auth0/Stripe-related failure codes (see endpoint-specific docs).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: |
+        The service is temporarily unavailable. The most common cause is the database being in scheduled maintenance.
+        Possible `errorCode` value: `DB_DISABLED` (130).
+        Clients should retry after a short delay; if a `Retry-After` response header is present, respect it.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    ErrorResponse:
+      type: object
+      description: |
+        Standard error response body shape, returned with every 4xx/5xx HTTP status.
+        See the API Overview for the meaning of each field.
+      required:
+        - status
+        - errorCode
+        - errorMessage
+      properties:
+        status:
+          type: integer
+          enum: [1]
+          description: Always `1` for error responses (`0` for success). Matches the body shape used by v1 endpoints for backward compatibility.
+          example: 1
+        errorCode:
+          type: integer
+          description: Numeric identifier for the specific error condition. Multiple `errorCode` values can map to the same HTTP status — branch on this when you need to distinguish error subtypes.
+          example: 116
+        errorMessage:
+          type: string
+          description: Human-readable error message suitable for display to end users.
+          example: "Invalid parameter value for userId"
+        errorDetails:
+          type: object
+          nullable: true
+          description: Optional additional context about the error. Shape varies by error type; may be `null` or omitted.
     GetPlaysResponse:
       type: object
       description: Response containing list of plays with puzzle type specific state details
@@ -1191,29 +1320,6 @@ components:
           minimum: 0
           description: Number of pieces remaining to be placed
           example: 25
-    ErrorResponse:
-      type: object
-      description: Standard error response format for API errors
-      properties:
-        status:
-          type: integer
-          description: Error status code (1 for errors)
-          example: 1
-        errorCode:
-          type: integer
-          description: Specific error code for different error types
-          example: 6
-        errorMessage:
-          type: string
-          description: Human-readable error message
-          example: "Token expired"
-        errorDetails:
-          type: object
-          description: Additional error details specific to the error type
-          additionalProperties: true
-          example:
-            type: "EXPIRED_TOKEN"
-            paramName: "series"
     PlaysResponseAPI:
       type: object
       properties:

@@ -36,12 +36,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "get-series-or-puzzle-specific-aggregate-metrics",
-          label: "Get series or puzzle specific aggregate metrics",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
           id: "get-plays-for-a-given-user",
           label: "Get plays for a given user",
           className: "api-method get",
@@ -56,6 +50,18 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "retrieve-series-information",
           label: "Retrieve series information",
+          className: "api-method get",
+        },
+      ],
+    },
+    {
+      type: "category",
+      label: "Analytics",
+      items: [
+        {
+          type: "doc",
+          id: "get-series-or-puzzle-specific-aggregate-metrics",
+          label: "Get series or puzzle specific aggregate metrics",
           className: "api-method get",
         },
       ],
