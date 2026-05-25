@@ -506,7 +506,7 @@ paths:
           description: |
             Caller is authenticated but not allowed to access the requested resource. Possible `errorCode` values for this endpoint:
             - `NO_ACCESS_TO_SET` (84) — caller has no access to the requested series.
-            - `DISALLOWED_OPERATION_FOR_SET` (89) — the reporting operation is not permitted for this series.
+            - `DISALLOWED_OPERATION_FOR_SET` (89) — operation not permitted for this *specific series* (series-level gating); fires when reporting is not enabled for the requested series.
           content:
             application/json:
               schema:
@@ -569,7 +569,7 @@ paths:
         '403':
           description: |
             Caller is authenticated but not allowed to mint tokens. Possible `errorCode` values for this endpoint:
-            - `DISALLOWED_OPERATION` (88) — the account is not permitted to use API token authentication.
+            - `DISALLOWED_OPERATION` (88) — operation not permitted for this *caller* regardless of series (account/role-level gating); fires when the account is not permitted to use API token authentication.
           content:
             application/json:
               schema:
@@ -1104,62 +1104,56 @@ components:
   responses:
     Unauthenticated:
       description: |
-        Caller is not authenticated. The request did not include valid credentials, or the provided credentials have expired or are invalid.
+        Caller is not authenticated.
         Possible `errorCode` values:
-        - `UNAUTHENTICATED_ACCESS` (108) — no authentication presented when one was required.
-        - `INVALID_API_CREDENTIALS` (97) — `client_id`/`client_secret` invalid or revoked.
+        - `UNAUTHENTICATED_ACCESS` (108) — no `Authorization` header presented.
         - `EXPIRED_TOKEN` (98) — bearer token expired.
-        - `INVALID_TOKEN` (99) — bearer token is malformed or signature invalid.
-        - `LOAD_INVALID_TOKEN` (28) — load token (picker/player flows) missing or invalid.
-        - `FAILED_AUTHENTICATION_ATTEMPT` (110) — credential validation failed.
-        - `NON_LOGGED_IN_SERIES` (18), `NON_LOGGED_IN_SERIES_USER_ACTIVITY` (100), `NON_LOGGED_IN_PDF_UPLOAD` (125) — missing auth credentials for a series that requires them.
+        - `INVALID_TOKEN` (99) — bearer token malformed or signature invalid.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Forbidden:
       description: |
-        Caller is authenticated but not allowed to perform this operation. Reasons include lacking access to the targeted resource, plan-tier denial, quota exceeded, account state issues, or security policy violations.
+        Caller is authenticated but not allowed to perform this operation.
         Possible `errorCode` values:
-        - `NO_ACCESS_TO_SET` (84), `NO_WRITE_ACCESS_TO_SET` (85), `NO_SETS_FOR_AUTH` (86), `CONTENT_SET_NOT_WRITABLE` (87) — caller's access to the requested series/set is insufficient.
-        - `DISALLOWED_OPERATION` (88), `DISALLOWED_OPERATION_FOR_SET` (89) — the operation itself is not permitted in this context.
-        - `PERMISSION_DENIED` (114) — generic permission/plan-tier denial.
-        - `INVITE_QUOTA_EXCEEDED` (33), `MEDIA_UPLOAD_QUOTA_EXCEEDED` (111), `PUZZLE_CREATION_QUOTA_OVER` (112), `SERIES_CREATION_QUOTA_OVER` (113) — account-level quota reached for the operation.
-        - `ACCOUNT_EXPIRED` (95), `DEBOARDED_ACCOUNT_ACCESS` (115), `INACTIVE_USER` (137) — account/user is in a state that disallows the operation.
-        - `UNAUTHORIZED_MEDIA_SERVER_URL` (119) — referenced URL is not on the allow-list.
-        - `UNPUBLISHED_PUZZLE` (2) — puzzle exists but is not published.
+        - `NO_ACCESS_TO_SET` (84)
+        - `NO_WRITE_ACCESS_TO_SET` (85)
+        - `CONTENT_SET_NOT_WRITABLE` (87)
+        - `PERMISSION_DENIED` (114)
+        - `ACCOUNT_EXPIRED` (95)
+        - `INACTIVE_USER` (137)
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: |
-        The requested resource does not exist. The set of possible `errorCode` values depends on the endpoint (e.g. `PUZZLE_NOT_FOUND`, `SERIES_NOT_FOUND`, `NO_LOAD_FOUND`, `ACCOUNT_NOT_FOUND`, `PLAY_NOT_FOUND`); see the endpoint's own description for the specific codes it can return.
+        The requested resource does not exist. Possible `errorCode` values depend on the endpoint (e.g. `PUZZLE_NOT_FOUND`, `SERIES_NOT_FOUND`, `NO_LOAD_FOUND`, `ACCOUNT_NOT_FOUND`, `PLAY_NOT_FOUND`).
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     InternalServerError:
       description: |
-        An internal server error occurred while processing the request. This indicates a problem on our end — your request was well-formed. The request may succeed if retried.
-        Possible `errorCode` values include database failures (`IO_FAILURE` (128), internal DB errors), persistence write failures, server-side configuration issues, and unexpected generation/algorithm failures. The `errorMessage` will typically describe the failed operation generically.
+        An internal server error occurred while processing the request.
+        Possible `errorCode` values include `IO_FAILURE` (128) and other internal failures.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     BadGateway:
       description: |
-        An upstream service we depend on (Auth0, Stripe, translation service, etc.) returned an error or was unreachable. The request may succeed if retried after a short delay.
-        Possible `errorCode` values include `TRANSLATION_SERVICE_FAILURE` (215) and Auth0/Stripe-related failure codes (see endpoint-specific docs).
+        An upstream service (Auth0, Stripe, translation service) returned an error or was unreachable.
+        Possible `errorCode` values include `TRANSLATION_SERVICE_FAILURE` (215).
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     ServiceUnavailable:
       description: |
-        The service is temporarily unavailable. The most common cause is the database being in scheduled maintenance.
+        The service is temporarily unavailable, typically due to scheduled database maintenance.
         Possible `errorCode` value: `DB_DISABLED` (130).
-        Clients should retry after a short delay; if a `Retry-After` response header is present, respect it.
       content:
         application/json:
           schema:
