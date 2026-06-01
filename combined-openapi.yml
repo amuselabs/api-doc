@@ -1060,12 +1060,34 @@ paths:
         Fetches aggregated stats for a user given a series. The response includes started-puzzle metrics
         (counts and streaks) and completed-puzzle metrics (counts, streaks, and solve-time aggregates when available).
 
-        **Example:**
+        **What are user stats?**
+        User stats provide a summary of a player's engagement with a puzzle series — how many puzzles
+        they have started, how many they have completed, and how consistently they have played (streaks).
+        Stats are computed from the full play history for the given user and series.
 
+        **Streak Definition:**
+        A streak counts how many consecutive published puzzles a user has started or completed without
+        missing one. Streaks follow the publication order of puzzles in the series:
+
+        - **Started streak:** A puzzle contributes to the started streak when the user has at least one
+          play record for it. The streak increments with each successive published puzzle the user starts.
+          The streak breaks as soon as there is a published puzzle the user has not started yet.
+        - **Completed streak:** A puzzle contributes to the completed streak when the user solves it
+          before the next puzzle in the series is published. The streak increments with each successive
+          puzzle the user completes on time. The streak breaks when a puzzle is published and the
+          preceding puzzle had not been completed before that publication date.
+
+        `currentStreak` reflects the active, unbroken streak counted from the most recent puzzle in
+        the series back to the first missed puzzle. `longestStreak` is the highest streak the user
+        has ever achieved for this series.
+
+        **Examples:**
+
+        **Get user stats for a series:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/user-stats?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
-        -H 'Accept: application/json' \
-        -H 'Authorization: <your_access_token>'
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/user-stats?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
         ```
       parameters:
         - name: series
@@ -1095,7 +1117,11 @@ paths:
                 user_stats:
                   summary: User stats for a series
                   description: |
-                    Aggregated started and completed stats. `totalSolveTime` and `fastestSolveTime` may be null when not applicable.
+                    Aggregated started and completed stats for a user.
+                    In this example, the user has started 42 puzzles with a current started streak of 5 and
+                    a longest started streak of 12. They have completed 38 puzzles with a current completed
+                    streak of 4 and a longest completed streak of 10.
+                    `totalSolveTime` and `fastestSolveTime` may be `null` when not applicable.
                   value:
                     status: 0
                     userStats:
@@ -1340,8 +1366,9 @@ components:
     UserStatsAggregates:
       type: object
       description: |
-        Started and completed aggregates. The `completed` object reflects the completion lane in JSON
-        (field name `completed`), backed by relaxed-completion columns in storage.
+        Started and completed aggregates for a user in a series.
+        `started` counts and streaks are based on any play activity for each puzzle.
+        `completed` counts and streaks are based on solving each puzzle before the next one is published.
       properties:
         started:
           $ref: '#/components/schemas/UserStatsStarted'
@@ -1349,45 +1376,55 @@ components:
           $ref: '#/components/schemas/UserStatsCompleted'
     UserStatsStarted:
       type: object
-      description: Stats for puzzles the user has started
+      description: Stats for puzzles the user has started in the series
       properties:
         count:
           type: integer
-          description: Total puzzles started
+          description: Total number of puzzles the user has started
           example: 42
         currentStreak:
           type: integer
-          description: Current streak of consecutive published puzzles started without a break
+          description: |
+            Number of consecutive published puzzles (in reverse publication order from the most recent)
+            that the user has started without a gap. The streak ends at the first published puzzle the
+            user has not yet started.
           example: 5
         longestStreak:
           type: integer
-          description: Longest streak of consecutive published puzzles started
+          description: |
+            The highest started streak the user has ever achieved in this series.
           example: 12
     UserStatsCompleted:
       type: object
-      description: Stats for puzzles the user has completed (relaxed completion semantics)
+      description: Stats for puzzles the user has completed in the series
       properties:
         count:
           type: integer
-          description: Total puzzles solved/completed
+          description: Total number of puzzles the user has completed
           example: 38
         currentStreak:
           type: integer
-          description: Current streak of consecutive puzzles solved before the next puzzle was published
+          description: |
+            Number of consecutive published puzzles (in reverse publication order from the most recent)
+            that the user completed before the next puzzle was published, without a gap. The streak ends
+            at the first puzzle the user did not complete before the subsequent puzzle went live.
           example: 4
         longestStreak:
           type: integer
-          description: Longest streak of consecutive puzzles solved before the next puzzle was published
+          description: |
+            The highest completed streak the user has ever achieved in this series.
           example: 10
         totalSolveTime:
           type: integer
           nullable: true
-          description: Total solve time in seconds; null if not applicable
+          description: |
+            Sum of solve times (in seconds) across all completed puzzles.
           example: 86400
         fastestSolveTime:
           type: integer
           nullable: true
-          description: Fastest solve time in seconds; null if not applicable
+          description: |
+            Fastest single solve time (in seconds) across all completed puzzles.
           example: 120
     ErrorResponse:
       type: object
