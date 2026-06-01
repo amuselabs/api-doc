@@ -35,6 +35,16 @@ This command generates static content into the `build` directory and can be serv
 
 ## Deployment
 [Userful resource](https://docusaurus.io/docs/deployment#deploy)
+
+### Need to follow the steps after changing yml file
+
+1. rm docs/*
+2. npm run docusaurus gen-api-docs all
+3. git checkout docs/_intro.md
+4. git add docs
+5. git commit -m "message"
+6. git push
+
 ### GitHub Pages 
 
 The documentation is automatically deployed to GitHub Pages when changes are pushed to the `main` branch. The `deploy-doc.yml` GitHub Action will:
