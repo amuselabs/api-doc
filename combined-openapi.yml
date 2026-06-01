@@ -28,6 +28,8 @@ tags:
     x-displayName: Series
   - name: Analytics
     x-displayName: Analytics
+  - name: User Fields
+    x-displayName: User Fields
 paths:
   /api/v1/puzzles:
     get:
@@ -733,6 +735,324 @@ paths:
                     errorDetails:
                       series: "pm"
                       type: "UNAUTHORIZED_ACCESS_TO_SET"
+  /api/v1/user-fields:
+    get:
+      summary: Get user fields
+      description: |
+        Retrieves lead generation field data submitted by a given user for a puzzle within a given series.
+        Fields are returned as key-value pairs in a `fields` object using keys `field_1`, `field_2`, and `field_3`.
+
+        **What are user fields?**
+        User fields correspond to the lead generation fields configured in the
+        [series settings](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+        When lead generation is enabled for a series, up to 3 custom fields of information can be
+        collected from players — such as name, email address, or phone number. These fields are
+        configured with labels and input types (text, numbers, or email) in the series settings,
+        and are represented in the API as `field_1`, `field_2`, and `field_3`.
+
+        **Fields:**
+        Fields use keys `field_1`, `field_2`, and `field_3`. The label and validation type for each
+        field are defined in the series settings under
+        [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+        For example, a series might configure `field_1` as "Participant Name" (text),
+        `field_2` as "Email Address" (email format), and `field_3` as "Phone Number" (numbers only).
+
+        **Response:**
+        Only fields that have been set are returned. Fields that have not been set for the user
+        are omitted from the response. The response always returns HTTP 200 with `status: 0` —
+        an empty `fields` object indicates no data has been collected for this user.
+
+        **Examples:**
+
+        **Get user fields for a given puzzle:**
+        ```bash
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier that scopes the user fields.
+            Example: "demo-crossword", "quiz-series"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Unique user identifier.
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        - name: puzzleId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Puzzle identifier to retrieve fields for a given puzzle.
+            Example: "daily-2024-01-15"
+      responses:
+        '200':
+          description: |
+            User fields retrieved successfully. Only fields that have been set are returned;
+            fields without values are omitted from the response.
+            An empty `fields` object means no data has been collected for this user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserFieldsGetResponse'
+              examples:
+                with_fields:
+                  summary: User with fields set
+                  description: |
+                    Response when the user has submitted lead generation fields for this puzzle.
+                    Only fields that have been set are included; unset fields are omitted.
+                  value:
+                    status: 0
+                    userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                    series: "demo-crossword"
+                    fields:
+                      field_1: "Jane Doe"
+                      field_2: "jane@example.com"
+                no_fields:
+                  summary: User with no fields set
+                  description: |
+                    Response when no lead generation data has been collected for this user and puzzle.
+                    The `fields` object is empty but the request succeeds with status 0.
+                  value:
+                    status: 0
+                    userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                    series: "demo-crossword"
+                    fields: {}
+        '400':
+          description: Bad request (missing or invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_series:
+                  summary: Missing required parameter
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "series"
+                missing_user_id:
+                  summary: Missing userId
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "userId"
+        '401':
+          description: Unauthorized (missing or invalid API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired_token:
+                  summary: Expired token
+                  value:
+                    status: 1
+                    errorCode: 6
+                    errorMessage: "Token expired"
+                    errorDetails:
+                      type: "EXPIRED_TOKEN"
+        '403':
+          description: Forbidden (no read access to series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_access:
+                  summary: No access to series
+                  value:
+                    status: 1
+                    errorCode: 8
+                    errorMessage: "No access to series"
+                    errorDetails:
+                      series: "demo-crossword"
+                      type: "UNAUTHORIZED_ACCESS_TO_SET"
+      security:
+        - bearerAuth: []
+      tags:
+        - User Fields
+    post:
+      summary: Set user fields
+      description: |
+        Sets lead generation field data for a given user, a puzzle, and a given series.
+        If a field already exists for this user and puzzle, its value is overwritten.
+
+        **What are user fields?**
+        User fields correspond to the lead generation fields configured in the
+        [series settings](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+        When lead generation is enabled for a series, up to 3 custom fields of information can be
+        collected from players — such as name, email address, or phone number. These fields are
+        configured with labels and input types (text, numbers, or email) in the series settings,
+        and are represented in the API as `field_1`, `field_2`, and `field_3`.
+
+        **Fields:**
+        Fields use keys `field_1`, `field_2`, and `field_3`. The label and validation type for each
+        field are defined in the series settings under
+        [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+        For example, a series might configure `field_1` as "Participant Name" (text),
+        `field_2` as "Email Address" (email format), and `field_3` as "Phone Number" (numbers only).
+
+        **Request Body:**
+        The `fields` object contains only the fields to set. Fields not included in the request
+        are left untouched.
+
+        **Response:**
+        A success response with `status: 0`. The response does not echo back the saved fields.
+
+        **Examples:**
+
+        **Set user fields for a puzzle:**
+        ```bash
+        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Content-Type: application/json' \
+        -d '{"fields": {"field_1": "Jane Doe", "field_2": "jane@example.com"}}'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier that scopes the user fields.
+            Example: "demo-crossword"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Unique user identifier.
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        - name: puzzleId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Puzzle identifier to scope the fields to a given puzzle.
+            Example: "daily-2024-01-15"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserFieldsRequest'
+            examples:
+              set_two_fields:
+                summary: Set name and email
+                value:
+                  fields:
+                    field_1: "Jane Doe"
+                    field_2: "jane@example.com"
+              set_all_fields:
+                summary: Set all three fields
+                value:
+                  fields:
+                    field_1: "Jane Doe"
+                    field_2: "jane@example.com"
+                    field_3: "+14155550100"
+      responses:
+        '200':
+          description: Fields set successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserFieldsPostResponse'
+              examples:
+                success:
+                  summary: Fields set successfully
+                  value:
+                    status: 0
+        '400':
+          description: Bad request (invalid fields, validation failure, or missing parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_field_name:
+                  summary: Unknown field name
+                  description: |
+                    Error when the request body contains a field name not in the allowed set (`field_1`, `field_2`, and `field_3`).
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "fields"
+                      value: "Unknown field key: field_99"
+                validation_failure:
+                  summary: Field value fails validation
+                  description: |
+                    Error when a field value does not satisfy the series-specific validation rule.
+                    For example, field_2 (email) must match the email format configured for this series.
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "field_2"
+                      value: "Value does not match required format for this series."
+                missing_series:
+                  summary: Missing required parameter
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "series"
+        '401':
+          description: Unauthorized (missing or invalid API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired_token:
+                  summary: Expired token
+                  value:
+                    status: 1
+                    errorCode: 6
+                    errorMessage: "Token expired"
+                    errorDetails:
+                      type: "EXPIRED_TOKEN"
+        '403':
+          description: Forbidden (no write access to series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_access:
+                  summary: No write access to series
+                  value:
+                    status: 1
+                    errorCode: 8
+                    errorMessage: "No access to series"
+                    errorDetails:
+                      series: "demo-crossword"
+                      type: "UNAUTHORIZED_ACCESS_TO_SET"
+      security:
+        - bearerAuth: []
+      tags:
+        - User Fields
   /api/v1/user-stats:
     get:
       summary: Get series specific user stats
@@ -1296,6 +1616,87 @@ components:
             - DELETED
           description: Status of the series
           example: "ACTIVE"
+    UserFieldsRequest:
+      type: object
+      description: |
+        Request body for setting user fields.
+        Only the fields to be set should be included. Fields not included in the request are left unchanged.
+      required:
+        - fields
+      properties:
+        fields:
+          type: object
+          description: |
+            Key-value pairs of user fields to set. Keys must be from the allowed set: `field_1`, `field_2`, and `field_3`.
+            Values are strings. Only fields to be set should be included.
+            The label and validation type for each field are configured in the series settings under
+            [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+          properties:
+            field_1:
+              type: string
+              nullable: true
+              description: "First lead generation field. Validated against the input type configured in series settings."
+              example: "Jane Doe"
+            field_2:
+              type: string
+              nullable: true
+              description: "Second lead generation field. Validated against the input type configured in series settings."
+              example: "jane@example.com"
+            field_3:
+              type: string
+              nullable: true
+              description: "Third lead generation field. Validated against the input type configured in series settings."
+              example: "+14155550100"
+          additionalProperties: false
+    UserFieldsGetResponse:
+      type: object
+      description: |
+        Response containing user fields for the requested user, series, and puzzle.
+        Only fields that have been set are returned. Fields that have not been set are omitted
+        from the response (they are not returned as `null` or empty strings).
+      properties:
+        status:
+          type: integer
+          description: "Response status code. 0 indicates success."
+          example: 0
+        userId:
+          type: string
+          description: "Echoed user identifier from the request."
+          example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        series:
+          type: string
+          description: "Echoed series identifier from the request."
+          example: "demo-crossword"
+        fields:
+          type: object
+          description: |
+            Key-value pairs of user fields that have been set. Only fields with values are included;
+            unset fields are omitted. An empty object means no lead generation data has been
+            collected for this user and puzzle. The label and validation type for each field are
+            configured in the series settings under
+            [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+          properties:
+            field_1:
+              type: string
+              example: "Jane Doe"
+            field_2:
+              type: string
+              example: "jane@example.com"
+            field_3:
+              type: string
+              example: "+14155550100"
+          additionalProperties: false
+    
+    UserFieldsPostResponse:
+      type: object
+      description: |
+        Response for a successful set operation. Contains only the status code.
+        The saved fields are not echoed back. Use GET to retrieve the current state if needed.
+      properties:
+        status:
+          type: integer
+          description: "Response status code. 0 indicates success."
+          example: 0
 x-tagGroups:
   - name: Auth
     tags:
@@ -1312,3 +1713,6 @@ x-tagGroups:
   - name: Analytics
     tags:
       - Analytics
+  - name: User Fields
+    tags:
+      - User Fields

@@ -62,6 +62,24 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: "category",
+      label: "User Fields",
+      items: [
+        {
+          type: "doc",
+          id: "get-user-fields",
+          label: "Get user fields",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "set-user-fields",
+          label: "Set user fields",
+          className: "api-method post",
+        },
+      ],
+    },
+    {
+      type: "category",
       label: "User Stats",
       items: [
         {
