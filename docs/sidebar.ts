@@ -78,6 +78,18 @@ const sidebar: SidebarsConfig = {
         },
       ],
     },
+    {
+      type: "category",
+      label: "User Stats",
+      items: [
+        {
+          type: "doc",
+          id: "get-series-specific-user-stats",
+          label: "Get series specific user stats",
+          className: "api-method get",
+        },
+      ],
+    },
   ],
 };
 

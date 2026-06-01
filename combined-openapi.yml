@@ -26,10 +26,10 @@ tags:
     x-displayName: Plays
   - name: Series
     x-displayName: Series
-  - name: Analytics
-    x-displayName: Analytics
   - name: User Fields
     x-displayName: User Fields
+  - name: User Stats
+    x-displayName: User Stats
 paths:
   /api/v1/puzzles:
     get:
@@ -1053,6 +1053,148 @@ paths:
         - bearerAuth: []
       tags:
         - User Fields
+  /api/v1/user-stats:
+    get:
+      summary: Get series specific user stats
+      description: |
+        Fetches aggregated stats for a user given a series — how many puzzles they have started,
+        how many they have completed, and how consistently they have played (streaks).
+
+        **Streak Definition:**
+        A streak counts how many consecutive published puzzles a user has started or completed without
+        missing one. Streaks follow the publication order of puzzles in the series:
+
+        - **Started streak:** A puzzle contributes to the started streak when the user has at least one
+          play record for it. The streak increments with each successive published puzzle the user starts.
+          The streak breaks as soon as there is a published puzzle the user has not started yet.
+        - **Completed streak:** A puzzle contributes to the completed streak when the user solves it
+          before the next puzzle in the series is published. The streak increments with each successive
+          puzzle the user completes on time. The streak breaks when a puzzle is published and the
+          preceding puzzle had not been completed before that publication date.
+
+        `currentStreak` reflects the active, unbroken streak counted from the most recent puzzle in
+        the series back to the first missed puzzle. `longestStreak` is the highest streak the user
+        has ever achieved for this series.
+
+        **Examples:**
+
+        **Get user stats for a series:**
+        ```bash
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/user-stats?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier for the puzzle collection.
+            Example: "api-demo-crossword", "demo-api"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            User ID to fetch stats for.
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+      responses:
+        '200':
+          description: Successful response with user stats object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserStatsResponse'
+              examples:
+                user_stats:
+                  summary: User stats for a series
+                  description: |
+                    Aggregated started and completed stats for a user.
+                    In this example, the user has started 42 puzzles with a current started streak of 5 and
+                    a longest started streak of 12. They have completed 38 puzzles with a current completed
+                    streak of 4 and a longest completed streak of 10.
+                    `totalSolveTime` and `fastestSolveTime` may be `null` when not applicable.
+                  value:
+                    status: 0
+                    userStats:
+                      userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                      series: "demo-api"
+                      stats:
+                        started:
+                          count: 42
+                          currentStreak: 5
+                          longestStreak: 12
+                        completed:
+                          count: 38
+                          currentStreak: 4
+                          longestStreak: 10
+                          totalSolveTime: 86400
+                          fastestSolveTime: 120
+        '400':
+          description: Bad request (missing/invalid parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_required_parameter:
+                  summary: Missing required parameter
+                  description: Error response when a required parameter is missing
+                  value:
+                    status: 1
+                    errorCode: 10
+                    errorMessage: "Invalid parameter."
+                    errorDetails:
+                      paramName: "series"
+        '401':
+          description: Unauthorized (invalid or missing API token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired_token:
+                  summary: Expired token
+                  description: Error response when the API token has expired
+                  value:
+                    status: 1
+                    errorCode: 6
+                    errorMessage: "Token expired"
+                    errorDetails:
+                      type: "EXPIRED_TOKEN"
+                invalid_token:
+                  summary: Invalid token
+                  description: Error response when the API token is invalid
+                  value:
+                    status: 1
+                    errorCode: 5
+                    errorMessage: "Invalid token"
+                    errorDetails:
+                      type: "INVALID_TOKEN"
+        '403':
+          description: Forbidden (no access to series)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                no_access_to_series:
+                  summary: No access to series
+                  description: Error response when the caller does not have access to the requested series
+                  value:
+                    status: 1
+                    errorCode: 8
+                    errorMessage: "No access to series"
+                    errorDetails:
+                      series: "demo-api"
+                      type: "UNAUTHORIZED_ACCESS_TO_SET"
+      security:
+        - bearerAuth: []
+      tags:
+        - User Stats
 components:
   securitySchemes:
     bearerAuth:
@@ -1079,6 +1221,17 @@ components:
         hasMore:
           type: boolean
           description: Indicates if there are more plays available (pagination)
+    GetUserStatsResponse:
+      type: object
+      description: Response containing aggregated user statistics for a user in a series
+      properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
+        userStats:
+          $ref: '#/components/schemas/UserStatsResponse'
+          description: Aggregated stats for the requested user and series
     PlayResponse:
       type: object
       description: Individual play data with puzzle type specific progress information
@@ -1191,6 +1344,83 @@ components:
           minimum: 0
           description: Number of pieces remaining to be placed
           example: 25
+    UserStatsResponse:
+      type: object
+      description: Aggregated user statistics for a single series
+      properties:
+        userId:
+          type: string
+          description: User identifier
+          example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        series:
+          type: string
+          description: Series identifier
+          example: "demo-api"
+        stats:
+          $ref: '#/components/schemas/UserStatsAggregates'
+    UserStatsAggregates:
+      type: object
+      description: |
+        Started and completed aggregates for a user in a series.
+        `started` counts and streaks are based on any play activity for each puzzle.
+        `completed` counts and streaks are based on solving each puzzle before the next one is published.
+      properties:
+        started:
+          $ref: '#/components/schemas/UserStatsStarted'
+        completed:
+          $ref: '#/components/schemas/UserStatsCompleted'
+    UserStatsStarted:
+      type: object
+      description: Stats for puzzles the user has started in the series
+      properties:
+        count:
+          type: integer
+          description: Total number of puzzles the user has started
+          example: 42
+        currentStreak:
+          type: integer
+          description: |
+            Number of consecutive published puzzles (in reverse publication order from the most recent)
+            that the user has started without a gap. The streak ends at the first published puzzle the
+            user has not yet started.
+          example: 5
+        longestStreak:
+          type: integer
+          description: |
+            The highest started streak the user has ever achieved in this series.
+          example: 12
+    UserStatsCompleted:
+      type: object
+      description: Stats for puzzles the user has completed in the series
+      properties:
+        count:
+          type: integer
+          description: Total number of puzzles the user has completed
+          example: 38
+        currentStreak:
+          type: integer
+          description: |
+            Number of consecutive published puzzles (in reverse publication order from the most recent)
+            that the user completed before the next puzzle was published, without a gap. The streak ends
+            at the first puzzle the user did not complete before the subsequent puzzle went live.
+          example: 4
+        longestStreak:
+          type: integer
+          description: |
+            The highest completed streak the user has ever achieved in this series.
+          example: 10
+        totalSolveTime:
+          type: integer
+          nullable: true
+          description: |
+            Sum of solve times (in seconds) across all completed puzzles.
+          example: 86400
+        fastestSolveTime:
+          type: integer
+          nullable: true
+          description: |
+            Fastest single solve time (in seconds) across all completed puzzles.
+          example: 120
     ErrorResponse:
       type: object
       description: Standard error response format for API errors
@@ -1512,9 +1742,9 @@ x-tagGroups:
   - name: Series
     tags:
       - Series
-  - name: Analytics
-    tags:
-      - Analytics
   - name: User Fields
     tags:
       - User Fields
+  - name: User Stats
+    tags:
+      - User Stats

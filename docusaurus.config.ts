@@ -65,7 +65,7 @@ const config: Config = {
     // Replace with your project's social card
     image: 'img/puzzleme-logo.svg',
     navbar: {
-      title: 'PuzzleMe API',
+      title: 'API',
       logo: {
         alt: 'PuzzleMe API Logo',
         src: 'img/puzzleme-logo.svg',
