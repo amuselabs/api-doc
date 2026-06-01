@@ -62,18 +62,6 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: "category",
-      label: "Analytics",
-      items: [
-        {
-          type: "doc",
-          id: "get-series-specific-user-stats",
-          label: "Get series specific user stats",
-          className: "api-method get",
-        },
-      ],
-    },
-    {
-      type: "category",
       label: "User Fields",
       items: [
         {
@@ -87,6 +75,18 @@ const sidebar: SidebarsConfig = {
           id: "set-user-fields",
           label: "Set user fields",
           className: "api-method post",
+        },
+      ],
+    },
+    {
+      type: "category",
+      label: "User Stats",
+      items: [
+        {
+          type: "doc",
+          id: "get-series-specific-user-stats",
+          label: "Get series specific user stats",
+          className: "api-method get",
         },
       ],
     },

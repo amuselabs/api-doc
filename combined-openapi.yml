@@ -26,10 +26,10 @@ tags:
     x-displayName: Plays
   - name: Series
     x-displayName: Series
-  - name: Analytics
-    x-displayName: Analytics
   - name: User Fields
     x-displayName: User Fields
+  - name: User Stats
+    x-displayName: User Stats
 paths:
   /api/v1/puzzles:
     get:
@@ -1057,13 +1057,8 @@ paths:
     get:
       summary: Get series specific user stats
       description: |
-        Fetches aggregated stats for a user given a series. The response includes started-puzzle metrics
-        (counts and streaks) and completed-puzzle metrics (counts, streaks, and solve-time aggregates when available).
-
-        **What are user stats?**
-        User stats provide a summary of a player's engagement with a puzzle series — how many puzzles
-        they have started, how many they have completed, and how consistently they have played (streaks).
-        Stats are computed from the full play history for the given user and series.
+        Fetches aggregated stats for a user given a series — how many puzzles they have started,
+        how many they have completed, and how consistently they have played (streaks).
 
         **Streak Definition:**
         A streak counts how many consecutive published puzzles a user has started or completed without
@@ -1199,7 +1194,7 @@ paths:
       security:
         - bearerAuth: []
       tags:
-        - Analytics
+        - User Stats
 components:
   securitySchemes:
     bearerAuth:
@@ -1747,9 +1742,9 @@ x-tagGroups:
   - name: Series
     tags:
       - Series
-  - name: Analytics
-    tags:
-      - Analytics
   - name: User Fields
     tags:
       - User Fields
+  - name: User Stats
+    tags:
+      - User Stats
