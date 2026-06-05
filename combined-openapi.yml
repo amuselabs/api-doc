@@ -110,7 +110,7 @@ paths:
             format: date-time
           description: |
             Start time for puzzle publication range in ISO 8601 format with timezone offset.
-            Defaults to 2013-01-01T00:00:00Z if not specified.
+            Defaults to 1970-01-01T00:00:00Z (epoch) if not specified.
             Example: "2024-01-01T00:00:00Z" or "2024-01-01T00:00:00+05:30"
         - name: to
           in: query
@@ -648,7 +648,7 @@ paths:
             format: date-time
           description: |
             Start time for play start time range (`startedAt`) in ISO 8601 format (UTC).
-            Defaults to 2013-01-01T00:00:00Z if not specified.
+            Defaults to 1970-01-01T00:00:00Z (epoch) if not specified.
             Example: "2024-01-01T00:00:00Z"
         - name: to
           in: query
@@ -658,6 +658,7 @@ paths:
             format: date-time
           description: |
             End time for play start time range (`startedAt`) in ISO 8601 format (UTC).
+            Defaults to the current time if not specified.
             Example: "2024-01-31T23:59:59Z"
         - name: limit
           in: query
@@ -767,7 +768,8 @@ paths:
               - `userId` is missing.
               - `series` is missing.
               - `puzzleIds` count exceeds 30.
-              - `from`/`to` are partially specified (only one of the pair provided) or not in ISO 8601 with a timezone offset.
+              - `from` or `to` is provided but not in ISO 8601 format with a timezone offset. (Each is independently optional; supplying only one is allowed and the other defaults.)
+              - Both `from` and `to` are provided and `from` is later than `to`.
           content:
             application/json:
               schema:
@@ -892,7 +894,7 @@ paths:
             format: date-time
           description: |
             Start time for play start time range (`startedAt`) in ISO 8601 format (UTC).
-            Defaults to the earliest stored play timestamp if not specified.
+            Defaults to 1970-01-01T00:00:00Z (epoch) if not specified.
             Example: "2024-01-01T00:00:00Z"
         - name: to
           in: query
@@ -1011,7 +1013,8 @@ paths:
             Bad request. Possible `errorCode` values for this endpoint:
             - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
               - `series` is missing.
-              - `from`/`to` are partially specified (only one of the pair provided) or not in ISO 8601 format.
+              - `from` or `to` is provided but not in ISO 8601 format. (Each is independently optional; supplying only one is allowed and the other defaults.)
+              - Both `from` and `to` are provided and `from` is later than `to`.
               - `puzzleId` is malformed.
           content:
             application/json:
