@@ -26,6 +26,8 @@ tags:
     x-displayName: Plays
   - name: Series
     x-displayName: Series
+  - name: Analytics
+    x-displayName: Analytics
   - name: User Fields
     x-displayName: User Fields
   - name: User Stats
@@ -807,12 +809,10 @@ paths:
       summary: Get bulk plays for a series or puzzle
       description: |
         Retrieves play-by-play data in bulk across all users for a series or for a specific puzzle.
-        This endpoint reads from the **analytics read replica** and is intended for high-throughput
-        bulk pulls (data exports, downstream analytics pipelines, dashboards).
+        Intended for high-throughput bulk pulls (data exports, downstream analytics pipelines, dashboards).
 
-        For per-user play history, use the separate `/api/v2/plays` endpoint, which reads from the
-        primary database and accepts a `userId` parameter. User-scoped retrieval is not supported
-        on this endpoint.
+        For per-user play history, use the separate `/api/v2/plays` endpoint, which accepts a
+        `userId` parameter. User-scoped retrieval is not supported on this endpoint.
 
         **Supported Modes:**
         Determined by the presence of the `puzzleId` query parameter:
@@ -843,7 +843,7 @@ paths:
         **User Info (Lead-Generation Fields):**
         Set `getUserInfo=true` to include a `userInfo` object on each play, containing the
         lead-generation fields (`field_1`, `field_2`, `field_3`) collected for that user.
-        User info is returned only when the account is configured to allow PII collection;
+        User info is returned only when the account is configured to collect user information;
         otherwise the `userInfo` field is omitted from each play.
 
         **Examples:**
@@ -862,7 +862,7 @@ paths:
         -H 'Accept: application/json'
         ```
 
-        **Plays in a series with user info (PII):**
+        **Plays in a series with user info:**
         ```bash
         curl -L 'http://localhost:8080/pmm-dev/api/v2/analytics/plays?series=demo-api&getUserInfo=true' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
@@ -936,12 +936,12 @@ paths:
           description: |
             When set to `true`, the response includes a `userInfo` object per play containing the
             lead-generation fields (`field_1`, `field_2`, `field_3`) collected for the user.
-            User info is included only if the account is configured to allow PII collection;
+            User info is included only if the account is configured to collect user information;
             otherwise the `userInfo` object is omitted from each play.
       security:
         - bearerAuth: []
       tags:
-        - Plays
+        - Analytics
       responses:
         '200':
           description: |
@@ -1560,7 +1560,7 @@ components:
       description: |
         Response for `/api/v2/analytics/plays`. Same shape as `GetPlaysResponse` but each
         play may include an optional `userInfo` map (when `getUserInfo=true` is requested and
-        the account allows PII collection).
+        the account is configured to collect user information).
       properties:
         status:
           type: integer
@@ -1586,7 +1586,7 @@ components:
                 type: string
               description: |
                 Lead-generation fields collected for this user, keyed by `field_1`, `field_2`, `field_3`.
-                Present only when `getUserInfo=true` is requested and the account allows PII collection;
+                Present only when `getUserInfo=true` is requested and the account is configured to collect user information;
                 otherwise this field is omitted from the play.
               example:
                 field_1: "Jane Doe"
@@ -2089,6 +2089,9 @@ x-tagGroups:
   - name: Series
     tags:
       - Series
+  - name: Analytics
+    tags:
+      - Analytics
   - name: User Fields
     tags:
       - User Fields

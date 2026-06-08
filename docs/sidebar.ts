@@ -40,12 +40,6 @@ const sidebar: SidebarsConfig = {
           label: "Get plays for a given user",
           className: "api-method get",
         },
-        {
-          type: "doc",
-          id: "get-bulk-plays-for-a-series-or-puzzle",
-          label: "Get bulk plays for a series or puzzle",
-          className: "api-method get",
-        },
       ],
     },
     {
@@ -56,6 +50,24 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "retrieve-series-information",
           label: "Retrieve series information",
+          className: "api-method get",
+        },
+      ],
+    },
+    {
+      type: "category",
+      label: "Analytics",
+      items: [
+        {
+          type: "doc",
+          id: "get-series-or-puzzle-specific-aggregate-metrics",
+          label: "Get series or puzzle specific aggregate metrics",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "get-bulk-plays-for-a-series-or-puzzle",
+          label: "Get bulk plays for a series or puzzle",
           className: "api-method get",
         },
       ],
@@ -86,18 +98,6 @@ const sidebar: SidebarsConfig = {
           type: "doc",
           id: "get-series-specific-user-stats",
           label: "Get series specific user stats",
-          className: "api-method get",
-        },
-      ],
-    },
-    {
-      type: "category",
-      label: "Analytics",
-      items: [
-        {
-          type: "doc",
-          id: "get-series-or-puzzle-specific-aggregate-metrics",
-          label: "Get series or puzzle specific aggregate metrics",
           className: "api-method get",
         },
       ],
