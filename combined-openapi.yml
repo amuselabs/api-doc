@@ -585,7 +585,7 @@ paths:
         - If both are provided, plays between `from` and `to` (inclusive) are considered.
        
         **Pagination and Ordering:**
-        Results are paginated with the `limit` and `offset` query parameters and are ordered by **`startedAt` in descending order** (most recent starts first).
+        Results are paginated with the `limit` and `offset` parameters and are ordered by **`startedAt` in descending order** (most recent starts first).
         Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the number of records to skip (in the descending order of `startedAt`) before starting to return results. To retrieve all the plays using this endpoint:
         1. Call the endpoint with `offset=0`.  
         2. Process the returned plays.  
@@ -681,7 +681,7 @@ paths:
             default: 0
             minimum: 0
           description: |
-            Number of plays to skip from the start of the result set.
+            Number of plays to skip from the start of the plays list.
             Used for pagination.
       security:
         - bearerAuth: []
@@ -925,7 +925,7 @@ paths:
             default: 0
             minimum: 0
           description: |
-            Number of plays to skip from the start of the result set.
+            Number of plays to skip from the start of the plays list.
             Used for pagination.
         - name: getUserInfo
           in: query
