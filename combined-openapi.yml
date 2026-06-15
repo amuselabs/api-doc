@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: PuzzleMe API
-  version: 1.0.0
+  version: 2.0.0
   description: |
     The PuzzleMe API offers secure, efficient programmatic access to puzzles created on the PuzzleMe platform and their analytics. Designed for partners and developers, this API enables seamless integration of puzzle content and analytics dashboards into your applications and platforms.
 
@@ -57,7 +57,7 @@ paths:
        
         **Pagination and Ordering:**
         Results are paginated with the `limit` and `offset` query parameters and are ordered by **`publicationTime` in descending order** (newest first).
-        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the number of records to skip (in the descending order of `publicationTime`) before starting to return results. To retrieve all the puzzles using this endpoint:
+        Parameter `limit` *(integer)* specifies the maximum number of puzzles to return per request and `offset` denotes the number of puzzles to skip (in the descending order of `publicationTime`) before starting to return results. To retrieve all the puzzles using this endpoint:
         1. Call the endpoint with `offset=0`.  
         2. Process the returned puzzles.  
         3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.  
@@ -83,7 +83,7 @@ paths:
         
         **Time Range Request (Last 30 days):**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v2/puzzles?series=api-demo-crossword&from=2024-01-01T00:00:00Z&to=2024-01-31T23:59:59Z&limit=10&offset=0' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/puzzles?series=api-demo-crossword&from=2026-01-01T00:00:00Z&to=2026-01-31T23:59:59Z&limit=10&offset=0' \
         -H 'Accept: application/json'
         ```
       parameters:
@@ -103,7 +103,7 @@ paths:
           description: |
             Comma-separated list of puzzle IDs (for specific/multiple puzzles request).
             Maximum 30 puzzle IDs allowed per request.
-            Example: "daily-2024-01-15,daily-2024-01-16,daily-2024-01-17"
+            Example: "api-demo-crossword_2026_01_15,api-demo-crossword_2026_01_16,api-demo-crossword_2026_01_17"
         - name: from
           in: query
           required: false
@@ -113,7 +113,7 @@ paths:
           description: |
             Start time for puzzle publication range in ISO 8601 format with timezone offset.
             Defaults to 1970-01-01T00:00:00Z (epoch) if not specified.
-            Example: "2024-01-01T00:00:00Z" or "2024-01-01T00:00:00+05:30"
+            Example: "2026-01-01T00:00:00Z" or "2026-01-01T00:00:00+05:30"
         - name: to
           in: query
           required: false
@@ -123,7 +123,7 @@ paths:
           description: |
             End time for puzzle publication range in ISO 8601 format with timezone offset.
             Defaults to the current time if not specified.
-            Example: "2024-01-31T23:59:59Z" or "2024-01-31T23:59:59+05:30"
+            Example: "2026-01-31T23:59:59Z" or "2026-01-31T23:59:59+05:30"
         - name: limit
           in: query
           required: false
@@ -162,7 +162,7 @@ paths:
                     status: 0
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
-                        - title: "Daily Crossword"
+                        - title: "API Demo Crossword"
                           author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
@@ -192,7 +192,7 @@ paths:
                     status: 0
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
-                        - title: "Daily Crossword"
+                        - title: "API Demo Crossword"
                           author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
@@ -391,7 +391,7 @@ paths:
           schema:
             type: string
             format: date-time
-          description: 'The start date for the report in ISO 8601 format (e.g., `2024-07-01T00:00:00Z`). UTC is assumed if no timezone is specified.'
+          description: 'The start date for the report in ISO 8601 format (e.g., `2026-01-01T00:00:00Z`). UTC is assumed if no timezone is specified.'
         - name: duration
           in: query
           required: true
@@ -586,7 +586,7 @@ paths:
        
         **Pagination and Ordering:**
         Results are paginated with the `limit` and `offset` parameters and are ordered by **`startedAt` in descending order** (most recent starts first).
-        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the number of records to skip (in the descending order of `startedAt`) before starting to return results. To retrieve all the plays using this endpoint:
+        Parameter `limit` *(integer)* specifies the maximum number of plays to return per request and `offset` denotes the number of plays to skip (in the descending order of `startedAt`) before starting to return results. To retrieve all the plays using this endpoint:
         1. Call the endpoint with `offset=0`.  
         2. Process the returned plays.  
         3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.  
@@ -641,7 +641,7 @@ paths:
           description: |
             Comma-separated list of puzzle IDs to filter plays.
             If not provided, returns plays for all puzzles in the series.
-            Example: "daily-2024-01-15,daily-2024-01-16,daily-2024-01-17"
+            Example: "api-demo-crossword_2026_01_15,api-demo-crossword_2026_01_16,api-demo-crossword_2026_01_17"
         - name: from
           in: query
           required: false
@@ -651,7 +651,7 @@ paths:
           description: |
             Start time for play start time range (`startedAt`) in ISO 8601 format (UTC).
             Defaults to 1970-01-01T00:00:00Z (epoch) if not specified.
-            Example: "2024-01-01T00:00:00Z"
+            Example: "2026-01-01T00:00:00Z"
         - name: to
           in: query
           required: false
@@ -661,7 +661,7 @@ paths:
           description: |
             End time for play start time range (`startedAt`) in ISO 8601 format (UTC).
             Defaults to the current time if not specified.
-            Example: "2024-01-31T23:59:59Z"
+            Example: "2026-01-31T23:59:59Z"
         - name: limit
           in: query
           required: false
@@ -710,8 +710,8 @@ paths:
                         puzzleId: "123ba400"
                         series: "pm"
                         puzzleType: "crossword"
-                        startedAt: "2023-09-06T10:21:13Z"
-                        updatedAt: "2023-09-06T10:31:00Z"
+                        startedAt: "2026-01-06T10:21:13Z"
+                        updatedAt: "2026-01-06T10:31:00Z"
                         playProgress:
                           totalBoxes: 0
                           filledBoxes: 0
@@ -731,8 +731,8 @@ paths:
                         puzzleId: "123ba400"
                         series: "pm"
                         puzzleType: "crossword"
-                        startedAt: "2023-09-06T10:21:13Z"
-                        updatedAt: "2023-09-06T10:31:00Z"
+                        startedAt: "2026-01-06T10:21:13Z"
+                        updatedAt: "2026-01-06T10:31:00Z"
                         playProgress:
                           totalBoxes: 100
                           filledBoxes: 75
@@ -743,8 +743,8 @@ paths:
                         puzzleId: "46892ef6"
                         series: "pm"
                         puzzleType: "quiz"
-                        startedAt: "2023-08-01T06:39:41Z"
-                        updatedAt: "2023-08-02T08:22:00Z"
+                        startedAt: "2026-01-01T06:39:41Z"
+                        updatedAt: "2026-01-02T08:22:00Z"
                         playProgress:
                           attemptedQuestions: 8
                           playState: "completed"
@@ -754,8 +754,8 @@ paths:
                         puzzleId: "789abc12"
                         series: "pm"
                         puzzleType: "wordsearch"
-                        startedAt: "2023-08-03T14:15:30Z"
-                        updatedAt: "2023-08-03T14:45:15Z"
+                        startedAt: "2026-01-03T14:15:30Z"
+                        updatedAt: "2026-01-03T14:45:15Z"
                         playProgress:
                           totalWords: 20
                           wordsFound: 15
@@ -834,7 +834,7 @@ paths:
 
         **Pagination and Ordering:**
         Results are paginated with the `limit` and `offset` query parameters and are ordered by **`startedAt` in descending order** (most recent starts first).
-        Parameter `limit` *(integer)* specifies the maximum number of records to return per request (default 1000, maximum 1000) and `offset` denotes the number of records to skip (in the descending order of `startedAt`) before starting to return results. To retrieve all the plays using this endpoint:
+        Parameter `limit` *(integer)* specifies the maximum number of plays to return per request (default 1000, maximum 1000) and `offset` denotes the number of plays to skip (in the descending order of `startedAt`) before starting to return results. To retrieve all the plays using this endpoint:
         1. Call the endpoint with `offset=0`.
         2. Process the returned plays.
         3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.
@@ -885,7 +885,7 @@ paths:
           description: |
             Puzzle identifier to scope results to a single puzzle.
             If omitted, returns plays across every puzzle in the series.
-            Example: "daily-2024-01-15"
+            Example: "api-demo-crossword_2026_01_15"
         - name: from
           in: query
           required: false
@@ -895,7 +895,7 @@ paths:
           description: |
             Start time for play start time range (`startedAt`) in ISO 8601 format (UTC).
             Defaults to 1970-01-01T00:00:00Z (epoch) if not specified.
-            Example: "2024-01-01T00:00:00Z"
+            Example: "2026-01-01T00:00:00Z"
         - name: to
           in: query
           required: false
@@ -905,7 +905,7 @@ paths:
           description: |
             End time for play start time range (`startedAt`) in ISO 8601 format (UTC).
             Defaults to the current time if not specified.
-            Example: "2024-01-31T23:59:59Z"
+            Example: "2026-01-31T23:59:59Z"
         - name: limit
           in: query
           required: false
@@ -964,8 +964,8 @@ paths:
                         puzzleId: "123ba400"
                         series: "pm"
                         puzzleType: "crossword"
-                        startedAt: "2023-09-06T10:21:13Z"
-                        updatedAt: "2023-09-06T10:31:00Z"
+                        startedAt: "2026-01-06T10:21:13Z"
+                        updatedAt: "2026-01-06T10:31:00Z"
                         playProgress:
                           totalBoxes: 100
                           filledBoxes: 75
@@ -976,8 +976,8 @@ paths:
                         puzzleId: "46892ef6"
                         series: "pm"
                         puzzleType: "quiz"
-                        startedAt: "2023-08-01T06:39:41Z"
-                        updatedAt: "2023-08-02T08:22:00Z"
+                        startedAt: "2026-01-01T06:39:41Z"
+                        updatedAt: "2026-01-02T08:22:00Z"
                         playProgress:
                           attemptedQuestions: 8
                           playState: "completed"
@@ -996,8 +996,8 @@ paths:
                         puzzleId: "123ba400"
                         series: "pm"
                         puzzleType: "crossword"
-                        startedAt: "2023-09-06T10:21:13Z"
-                        updatedAt: "2023-09-06T10:31:00Z"
+                        startedAt: "2026-01-06T10:21:13Z"
+                        updatedAt: "2026-01-06T10:31:00Z"
                         playProgress:
                           totalBoxes: 100
                           filledBoxes: 100
@@ -1075,7 +1075,7 @@ paths:
 
         **Get user fields for a given puzzle:**
         ```bash
-        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/user-fields?series=api-demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=api-demo-crossword_2026_01_15' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
@@ -1103,7 +1103,7 @@ paths:
             type: string
           description: |
             Puzzle identifier to retrieve fields for a given puzzle.
-            Example: "daily-2024-01-15"
+            Example: "api-demo-crossword_2026_01_15"
       responses:
         '200':
           description: |
@@ -1204,7 +1204,7 @@ paths:
 
         **Set user fields for a puzzle:**
         ```bash
-        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v2/user-fields?series=demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=daily-2024-01-15' \
+        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v2/user-fields?series=api-demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=api-demo-crossword_2026_01_15' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Content-Type: application/json' \
         -d '{"fields": {"field_1": "Jane Doe", "field_2": "jane@example.com"}}'
@@ -1233,7 +1233,7 @@ paths:
             type: string
           description: |
             Puzzle identifier to scope the fields to a given puzzle.
-            Example: "daily-2024-01-15"
+            Example: "api-demo-crossword_2026_01_15"
       requestBody:
         required: true
         content:
@@ -1613,7 +1613,7 @@ components:
         puzzleId:
           type: string
           description: Puzzle identifier
-          example: "daily-2024-01-15"
+          example: "api-demo-crossword_2026_01_15"
         series:
           type: string
           description: Series name
@@ -1627,12 +1627,12 @@ components:
           type: string
           format: date-time
           description: Play start time in ISO 8601 UTC format
-          example: "2024-01-15T10:30:00Z"
+          example: "2026-01-15T10:30:00Z"
         updatedAt:
           type: string
           format: date-time
           description: Time when the play was last updated, in ISO 8601 UTC format.
-          example: "2024-01-15T11:15:00Z"
+          example: "2026-01-15T11:15:00Z"
         playProgress:
           oneOf:
             - $ref: '#/components/schemas/GridGamePlayProgress'
@@ -1843,7 +1843,7 @@ components:
                 - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
           example:
             api-demo-crossword:
-              - title: "Daily Crossword"
+              - title: "API Demo Crossword"
                 author: "Jane Smith"
                 puzzleId: "82e56966"
                 puzzleType: "CROSSWORD"
@@ -1863,7 +1863,7 @@ components:
         title:
           type: string
           description: Puzzle title
-          example: "Daily Crossword"
+          example: "API Demo Crossword"
         author:
           type: string
           description: Puzzle author/constructor name
