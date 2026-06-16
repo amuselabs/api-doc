@@ -1575,22 +1575,77 @@ components:
           type: boolean
           description: Indicates if there are more plays available (pagination)
     AnalyticsPlayResponse:
-      allOf:
-        - $ref: '#/components/schemas/PlayResponse'
-        - type: object
-          description: Adds analytics-only fields to the common per-play payload.
+      type: object
+      description: Individual play data with puzzle type specific progress information, plus optional user info.
+      properties:
+        userId:
+          type: string
+          description: Unique user identifier
+          example: "user123"
+        puzzleId:
+          type: string
+          description: Puzzle identifier
+          example: "api-demo-crossword_2026_01_15"
+        series:
+          type: string
+          description: Series name
+          example: "demo-api"
+        puzzleType:
+          type: string
+          enum: [crossword, codeword, krisskross, sudoku, quiz, wordsearch, wordflower, jigsaw]
+          description: Puzzle type
+          example: "crossword"
+        startedAt:
+          type: string
+          format: date-time
+          description: Play start time in ISO 8601 UTC format
+          example: "2026-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Time when the play was last updated, in ISO 8601 UTC format.
+          example: "2026-01-15T11:15:00Z"
+        playProgress:
+          oneOf:
+            - $ref: '#/components/schemas/GridGamePlayProgress'
+            - $ref: '#/components/schemas/QuizPlayProgress'
+            - $ref: '#/components/schemas/WordSearchPlayProgress'
+            - $ref: '#/components/schemas/JigsawPlayProgress'
+          description: Puzzle type specific play state details and progress information
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Backend computed score for the play
+          example: 85
+        screenTimeSeconds:
+          type: integer
+          minimum: 0
+          description: Screen time spent on puzzle in seconds on the frontend
+          example: 2700
+        userInfo:
+          type: object
+          description: |
+            User-information fields collected for this user. Keys are from the allowed set: `field_1`, `field_2`, `field_3`.
+            The label and validation type for each field are configured in the series settings under
+            [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+            Only fields that have been set for the user are included; unset fields are omitted.
+            The whole `userInfo` object is present only when `getUserInfo=true` is requested and the account is configured to collect user information;
+            otherwise this field is omitted from the play.
           properties:
-            userInfo:
-              type: object
-              additionalProperties:
-                type: string
-              description: |
-                Lead-generation fields collected for this user, keyed by `field_1`, `field_2`, `field_3`.
-                Present only when `getUserInfo=true` is requested and the account is configured to collect user information;
-                otherwise this field is omitted from the play.
-              example:
-                field_1: "Jane Doe"
-                field_2: "jane@example.com"
+            field_1:
+              type: string
+              description: First lead generation field.
+              example: "Jane Doe"
+            field_2:
+              type: string
+              description: Second lead generation field.
+              example: "jane@example.com"
+            field_3:
+              type: string
+              description: Third lead generation field.
+              example: "+14155550100"
+          additionalProperties: false
     GetUserStatsResponse:
       type: object
       description: Response containing aggregated user statistics for a user in a series
