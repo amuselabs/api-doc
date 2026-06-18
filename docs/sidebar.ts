@@ -52,6 +52,18 @@ const sidebar: SidebarsConfig = {
           label: "Retrieve series information",
           className: "api-method get",
         },
+        {
+          type: "doc",
+          id: "update-series-information",
+          label: "Update series information",
+          className: "api-method patch",
+        },
+        {
+          type: "doc",
+          id: "create-a-new-series",
+          label: "Create a new series",
+          className: "api-method post",
+        },
       ],
     },
     {
