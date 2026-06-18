@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: PuzzleMe API
-  version: 1.0.0
+  version: 2.0.0
   description: |
     The PuzzleMe API offers secure, efficient programmatic access to puzzles created on the PuzzleMe platform and their analytics. Designed for partners and developers, this API enables seamless integration of puzzle content and analytics dashboards into your applications and platforms.
 
@@ -28,8 +28,12 @@ tags:
     x-displayName: Series
   - name: Analytics
     x-displayName: Analytics
+  - name: User Fields
+    x-displayName: User Fields
+  - name: User Stats
+    x-displayName: User Stats
 paths:
-  /api/v1/puzzles:
+  /api/v2/puzzles:
     get:
       summary: Retrieve puzzle metadata
       description: |
@@ -53,7 +57,7 @@ paths:
        
         **Pagination and Ordering:**
         Results are paginated with the `limit` and `offset` query parameters and are ordered by **`publicationTime` in descending order** (newest first).
-        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the number of records to skip (in the descending order of `publicationTime`) before starting to return results. To retrieve all the puzzles using this endpoint:
+        Parameter `limit` *(integer)* specifies the maximum number of puzzles to return per request and `offset` denotes the number of puzzles to skip (in the descending order of `publicationTime`) before starting to return results. To retrieve all the puzzles using this endpoint:
         1. Call the endpoint with `offset=0`.  
         2. Process the returned puzzles.  
         3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.  
@@ -67,19 +71,19 @@ paths:
         
         **Specific Puzzle Request:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&puzzleIds=82e56966' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/puzzles?series=api-demo-crossword&puzzleIds=82e56966' \
         -H 'Accept: application/json'
         ```
         
         **Multiple Puzzles Request:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&puzzleIds=82e56966,50a2ab68,a7b2b0e0' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/puzzles?series=api-demo-crossword&puzzleIds=82e56966,50a2ab68,a7b2b0e0' \
         -H 'Accept: application/json'
         ```
         
         **Time Range Request (Last 30 days):**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/puzzles?series=api-demo-crossword&from=2024-01-01T00:00:00Z&to=2024-01-31T23:59:59Z&limit=10&offset=0' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/puzzles?series=api-demo-crossword&from=2026-01-01T00:00:00Z&to=2026-01-31T23:59:59Z&limit=10&offset=0' \
         -H 'Accept: application/json'
         ```
       parameters:
@@ -99,7 +103,7 @@ paths:
           description: |
             Comma-separated list of puzzle IDs (for specific/multiple puzzles request).
             Maximum 30 puzzle IDs allowed per request.
-            Example: "daily-2024-01-15,daily-2024-01-16,daily-2024-01-17"
+            Example: "api-demo-crossword_2026_01_15,api-demo-crossword_2026_01_16,api-demo-crossword_2026_01_17"
         - name: from
           in: query
           required: false
@@ -108,8 +112,8 @@ paths:
             format: date-time
           description: |
             Start time for puzzle publication range in ISO 8601 format with timezone offset.
-            Defaults to 2013-01-01T00:00:00Z if not specified.
-            Example: "2024-01-01T00:00:00Z" or "2024-01-01T00:00:00+05:30"
+            Defaults to 1970-01-01T00:00:00Z (epoch) if not specified.
+            Example: "2026-01-01T00:00:00Z" or "2026-01-01T00:00:00+05:30"
         - name: to
           in: query
           required: false
@@ -119,7 +123,7 @@ paths:
           description: |
             End time for puzzle publication range in ISO 8601 format with timezone offset.
             Defaults to the current time if not specified.
-            Example: "2024-01-31T23:59:59Z" or "2024-01-31T23:59:59+05:30"
+            Example: "2026-01-31T23:59:59Z" or "2026-01-31T23:59:59+05:30"
         - name: limit
           in: query
           required: false
@@ -158,7 +162,7 @@ paths:
                     status: 0
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
-                        - title: "Daily Crossword"
+                        - title: "API Demo Crossword"
                           author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
@@ -188,7 +192,7 @@ paths:
                     status: 0
                     seriesToPuzzleMetadata:
                       api-demo-crossword:
-                        - title: "Daily Crossword"
+                        - title: "API Demo Crossword"
                           author: "Jane Smith"
                           puzzleId: "82e56966"
                           puzzleType: "CROSSWORD"
@@ -200,7 +204,12 @@ paths:
                           numWords: 78
                     hasMore: false
         '400':
-          description: Bad request (missing/invalid parameters)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `puzzleIds` count exceeds 30 (specific-puzzles mode).
+              - `from` or `to` not in ISO 8601 format with a timezone offset.
+              - `series` is missing.
           content:
             application/json:
               schema:
@@ -208,32 +217,35 @@ paths:
               examples:
                 too_many_puzzle_ids:
                   summary: Too many puzzle IDs
-                  description: Error response when more than 30 puzzle IDs are provided
+                  description: Returned when more than 30 puzzle IDs are provided.
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for puzzleIds"
                     errorDetails:
                       paramName: "puzzleIds"
-                      value: "Maximum 30 puzzle IDs are allowed in a single request. Received: 150"
+                      paramValue: "150"
+                      contextMessage: "Maximum 30 puzzle IDs allowed per request"
                 missing_required_parameter:
                   summary: Missing required parameter
-                  description: Error response when a required parameter is missing
+                  description: Returned when a required parameter is missing.
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for series"
                     errorDetails:
                       paramName: "series"
         '401':
-          description: Unauthorized (invalid or missing API token)
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden (no access to series)
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
       tags:
         - Puzzles
-  /api/v1/series:
+  /api/v2/series:
     get:
       summary: Retrieve series information
       description: |
@@ -270,14 +282,14 @@ paths:
 
         **List All Series:**
         ```bash
-        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series' \
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/series' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
 
         **Get Specific Series:**
         ```bash
-        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/series?series=api-demo-crossword' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
@@ -405,23 +417,25 @@ paths:
                     status: 0
                     seriesList: []
         '400':
-          description: Bad request (missing/invalid parameters)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation (malformed query parameters).
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: Unauthorized (invalid or missing API token)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden (no access to account or series)
+          description: |
+            Caller is authenticated but not allowed to access the requested resource. Possible `errorCode` values for this endpoint:
+            - `NO_ACCESS_TO_SET` (84) — caller has no access to the requested series.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
       tags:
@@ -711,7 +725,7 @@ paths:
         - bearerAuth: []
       tags:
         - Series
-  /api/v1/reporting:
+  /api/v2/reporting:
     get:
       summary: Get series or puzzle specific aggregate metrics
       description: |
@@ -736,7 +750,7 @@ paths:
           schema:
             type: string
             format: date-time
-          description: 'The start date for the report in ISO 8601 format (e.g., `2024-07-01T00:00:00Z`). UTC is assumed if no timezone is specified.'
+          description: 'The start date for the report in ISO 8601 format (e.g., `2026-01-01T00:00:00Z`). UTC is assumed if no timezone is specified.'
         - name: duration
           in: query
           required: true
@@ -798,16 +812,56 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReportResponseAPI'
         '400':
-          description: Bad Request - Missing required parameters or inconsistent parameters (e.g., requesting load metrics with play dimensions).
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `series`, `from`, or `duration` is missing.
+              - `dimensions` or `metrics` is missing or empty.
+              - `metrics` mixes load metrics with play metrics (must be all load or all play).
+              - `dimensions` includes a play-only dimension when load metrics were requested (or vice versa).
+              - `from` is not in ISO 8601 format with a timezone offset, or `duration` is outside the allowed range.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_required_parameter:
+                  summary: Missing required parameter
+                  description: Returned when `dimensions` is missing.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for dimensions"
+                    errorDetails:
+                      paramName: "dimensions"
+                mixed_metric_types:
+                  summary: Mixed load and play metrics
+                  description: Returned when load and play metrics are requested together.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for metrics"
+                    errorDetails:
+                      paramName: "metrics"
+                      contextMessage: "Cannot mix load metrics with play metrics in a single request"
         '401':
-          description: Unauthorized - Missing or invalid API token.
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden - The user does not have permission to access the requested series.
+          description: |
+            Caller is authenticated but not allowed to access the requested resource. Possible `errorCode` values for this endpoint:
+            - `NO_ACCESS_TO_SET` (84) — caller has no access to the requested series.
+            - `DISALLOWED_OPERATION_FOR_SET` (89) — operation not permitted for this *specific series* (series-level gating); fires when reporting is not enabled for the requested series.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       security:
         - bearerAuth: []
       tags:
-        - Plays
-  /api/v1/token:
+        - Analytics
+  /api/v2/token:
     post:
       summary: Generate API token
       description: >
@@ -832,10 +886,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenResult'
         '400':
-          description: Bad request (missing/invalid credentials)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — `client_id` or `client_secret` is missing or empty.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_client_id:
+                  summary: Missing client_id
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for client_id"
+                    errorDetails:
+                      paramName: "client_id"
+        '401':
+          description: |
+            Authentication failed. Possible `errorCode` values for this endpoint:
+            - `INVALID_API_CREDENTIALS` (97) — `client_id`/`client_secret` pair is invalid or has been revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: |
+            Caller is authenticated but not allowed to mint tokens. Possible `errorCode` values for this endpoint:
+            - `DISALLOWED_OPERATION` (88) — operation not permitted for this *caller* regardless of series (account/role-level gating); fires when the account is not permitted to use API token authentication.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
       tags:
         - Auth
-  /api/v1/plays:
+  /api/v2/plays:
     get:
       summary: Get plays for a given user
       description: |
@@ -857,8 +944,8 @@ paths:
         - If both are provided, plays between `from` and `to` (inclusive) are considered.
        
         **Pagination and Ordering:**
-        Results are paginated with the `limit` and `offset` query parameters and are ordered by **`startedAt` in descending order** (most recent starts first).
-        Parameter `limit` *(integer)* specifies the maximum number of records to return per request and `offset` denotes the number of records to skip (in the descending order of `startedAt`) before starting to return results. To retrieve all the plays using this endpoint:
+        Results are paginated with the `limit` and `offset` parameters and are ordered by **`startedAt` in descending order** (most recent starts first).
+        Parameter `limit` *(integer)* specifies the maximum number of plays to return per request and `offset` denotes the number of plays to skip (in the descending order of `startedAt`) before starting to return results. To retrieve all the plays using this endpoint:
         1. Call the endpoint with `offset=0`.  
         2. Process the returned plays.  
         3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.  
@@ -866,25 +953,25 @@ paths:
         
         **Use Cases:**
         - **Streak Computation:** Use `startedAt` and `updatedAt` combined with `playProgress` fields to compute user streaks. For example, calculate consecutive days a user has completed puzzles by checking if `startedAt` and `updatedAt` fall on the puzzle's publish date and the `playProgress.playState` indicates completion.
-        - **Puzzle Details:** To get detailed information about the puzzles corresponding to the returned play IDs, use the separate Puzzles API endpoint (`/api/v1/puzzles`) with the `puzzleIds` parameter containing the puzzle IDs from the plays response.
+        - **Puzzle Details:** To get detailed information about the puzzles corresponding to the returned play IDs, use the separate Puzzles API endpoint (`/api/v2/puzzles`) with the `puzzleIds` parameter containing the puzzle IDs from the plays response.
  
        
         **Examples:**
         
         **Single Puzzle Play for given User:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&puzzleIds=123ba400&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/plays?series=demo-api&puzzleIds=123ba400&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
         -H 'Accept: application/json'
         ```
         
         **Multiple Puzzle Plays (Comma-separated puzzle ids) for a given User:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&puzzleIds=123ba400,46892ef6&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/plays?series=demo-api&puzzleIds=123ba400,46892ef6&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
         -H 'Accept: application/json'
         ```
         **All Plays for a given User for a given series:**
         ```bash
-        curl -L 'http://localhost:8080/pmm-dev/api/v1/plays?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/plays?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
         -H 'Accept: application/json'
         ```
       parameters:
@@ -913,7 +1000,7 @@ paths:
           description: |
             Comma-separated list of puzzle IDs to filter plays.
             If not provided, returns plays for all puzzles in the series.
-            Example: "daily-2024-01-15,daily-2024-01-16,daily-2024-01-17"
+            Example: "api-demo-crossword_2026_01_15,api-demo-crossword_2026_01_16,api-demo-crossword_2026_01_17"
         - name: from
           in: query
           required: false
@@ -922,8 +1009,8 @@ paths:
             format: date-time
           description: |
             Start time for play start time range (`startedAt`) in ISO 8601 format (UTC).
-            Defaults to 2013-01-01T00:00:00Z if not specified.
-            Example: "2024-01-01T00:00:00Z"
+            Defaults to 1970-01-01T00:00:00Z (epoch) if not specified.
+            Example: "2026-01-01T00:00:00Z"
         - name: to
           in: query
           required: false
@@ -932,7 +1019,8 @@ paths:
             format: date-time
           description: |
             End time for play start time range (`startedAt`) in ISO 8601 format (UTC).
-            Example: "2024-01-31T23:59:59Z"
+            Defaults to the current time if not specified.
+            Example: "2026-01-31T23:59:59Z"
         - name: limit
           in: query
           required: false
@@ -952,7 +1040,7 @@ paths:
             default: 0
             minimum: 0
           description: |
-            Number of plays to skip from the start of the result set.
+            Number of plays to skip from the start of the plays list.
             Used for pagination.
       security:
         - bearerAuth: []
@@ -981,8 +1069,8 @@ paths:
                         puzzleId: "123ba400"
                         series: "pm"
                         puzzleType: "crossword"
-                        startedAt: "2023-09-06T10:21:13Z"
-                        updatedAt: "2023-09-06T10:31:00Z"
+                        startedAt: "2026-01-06T10:21:13Z"
+                        updatedAt: "2026-01-06T10:31:00Z"
                         playProgress:
                           totalBoxes: 0
                           filledBoxes: 0
@@ -1002,8 +1090,8 @@ paths:
                         puzzleId: "123ba400"
                         series: "pm"
                         puzzleType: "crossword"
-                        startedAt: "2023-09-06T10:21:13Z"
-                        updatedAt: "2023-09-06T10:31:00Z"
+                        startedAt: "2026-01-06T10:21:13Z"
+                        updatedAt: "2026-01-06T10:31:00Z"
                         playProgress:
                           totalBoxes: 100
                           filledBoxes: 75
@@ -1014,8 +1102,8 @@ paths:
                         puzzleId: "46892ef6"
                         series: "pm"
                         puzzleType: "quiz"
-                        startedAt: "2023-08-01T06:39:41Z"
-                        updatedAt: "2023-08-02T08:22:00Z"
+                        startedAt: "2026-01-01T06:39:41Z"
+                        updatedAt: "2026-01-02T08:22:00Z"
                         playProgress:
                           attemptedQuestions: 8
                           playState: "completed"
@@ -1025,8 +1113,8 @@ paths:
                         puzzleId: "789abc12"
                         series: "pm"
                         puzzleType: "wordsearch"
-                        startedAt: "2023-08-03T14:15:30Z"
-                        updatedAt: "2023-08-03T14:45:15Z"
+                        startedAt: "2026-01-03T14:15:30Z"
+                        updatedAt: "2026-01-03T14:45:15Z"
                         playProgress:
                           totalWords: 20
                           wordsFound: 15
@@ -1035,7 +1123,14 @@ paths:
                         screenTimeSeconds: 1785
                     hasMore: false
         '400':
-          description: Bad request (missing/invalid parameters)
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `userId` is missing.
+              - `series` is missing.
+              - `puzzleIds` count exceeds 30.
+              - `from` or `to` is provided but not in ISO 8601 format with a timezone offset. (Each is independently optional; supplying only one is allowed and the other defaults.)
+              - Both `from` and `to` are provided and `from` is later than `to`.
           content:
             application/json:
               schema:
@@ -1043,55 +1138,674 @@ paths:
               examples:
                 missing_required_parameter:
                   summary: Missing required parameter
-                  description: Error response when a required parameter is missing
+                  description: Returned when a required parameter is missing.
                   value:
                     status: 1
-                    errorCode: 10
-                    errorMessage: "Invalid parameter."
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for userId"
+                    errorDetails:
+                      paramName: "userId"
+                too_many_puzzle_ids:
+                  summary: Too many puzzle IDs
+                  description: Returned when more than 30 puzzle IDs are provided.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for puzzleIds"
+                    errorDetails:
+                      paramName: "puzzleIds"
+                      contextMessage: "Maximum 30 puzzle IDs allowed per request"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+  /api/v2/analytics/plays:
+    get:
+      summary: Get bulk plays for a series or puzzle
+      description: |
+        Retrieves play-by-play data in bulk across all users for a series or for a specific puzzle.
+        Intended for high-throughput bulk pulls (data exports, downstream analytics pipelines, dashboards).
+
+        For per-user play history, use the separate `/api/v2/plays` endpoint, which accepts a
+        `userId` parameter. User-scoped retrieval is not supported on this endpoint.
+
+        **Supported Modes:**
+        Determined by the presence of the `puzzleId` query parameter:
+        - **All plays in a series:** omit `puzzleId` — returns every play across every puzzle in the series.
+        - **All plays for a single puzzle:** include `puzzleId` — returns every user's play on that puzzle.
+
+        **Puzzle Type Support:**
+        - **Grid Games** (Crossword, Codeword, KrissKross, Sudoku): Box completion statistics
+        - **Quiz Games**: Question attempt statistics
+        - **Word Search & Word Flower**: Word finding progress
+        - **Jigsaw**: Piece placement progress
+
+        **Time Range Filtering:**
+        - Use `from` (inclusive) and/or `to` (inclusive) to filter plays by start time (`startedAt`, ISO 8601 format).
+        - If neither is provided, all plays are considered.
+        - If only `from` is provided, plays from that time onwards are considered.
+        - If only `to` is provided, plays up to that time are considered.
+        - If both are provided, plays between `from` and `to` (inclusive) are considered.
+
+        **Pagination and Ordering:**
+        Results are paginated with the `limit` and `offset` query parameters and are ordered by **`startedAt` in descending order** (most recent starts first).
+        Parameter `limit` *(integer)* specifies the maximum number of plays to return per request (default 1000, maximum 1000) and `offset` denotes the number of plays to skip (in the descending order of `startedAt`) before starting to return results. To retrieve all the plays using this endpoint:
+        1. Call the endpoint with `offset=0`.
+        2. Process the returned plays.
+        3. If the `hasMore` field is set to `true`, request the next page by increasing `offset` by `limit`.
+        4. Repeat step 3 until a response returns `hasMore` field as false, indicating there are no more results.
+
+        **User Info (Lead-Generation Fields):**
+        Set `getUserInfo=true` to include a `userInfo` object on each play, containing the
+        lead-generation fields (`field_1`, `field_2`, `field_3`) collected for that user.
+        User info is returned only when the account is configured to collect user information;
+        otherwise the `userInfo` field is omitted from each play.
+
+        **Examples:**
+
+        **All plays in a series:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/analytics/plays?series=demo-api' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+
+        **All plays for a single puzzle:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/analytics/plays?series=demo-api&puzzleId=123ba400' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+
+        **Plays in a series with user info:**
+        ```bash
+        curl -L 'http://localhost:8080/pmm-dev/api/v2/analytics/plays?series=demo-api&getUserInfo=true' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier for the puzzle collection.
+            Example: "crossword", "quiz", "jigsaw"
+        - name: puzzleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            Puzzle identifier to scope results to a single puzzle.
+            If omitted, returns plays across every puzzle in the series.
+            Example: "api-demo-crossword_2026_01_15"
+        - name: from
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: |
+            Start time for play start time range (`startedAt`) in ISO 8601 format (UTC).
+            Defaults to 1970-01-01T00:00:00Z (epoch) if not specified.
+            Example: "2026-01-01T00:00:00Z"
+        - name: to
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: |
+            End time for play start time range (`startedAt`) in ISO 8601 format (UTC).
+            Defaults to the current time if not specified.
+            Example: "2026-01-31T23:59:59Z"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1000
+            minimum: 1
+            maximum: 1000
+          description: |
+            Maximum number of plays to return.
+            Default: 1000, Maximum: 1000
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: |
+            Number of plays to skip from the start of the plays list.
+            Used for pagination.
+        - name: getUserInfo
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: |
+            When set to `true`, the response includes a `userInfo` object per play containing the
+            lead-generation fields (`field_1`, `field_2`, `field_3`) collected for the user.
+            User info is included only if the account is configured to collect user information;
+            otherwise the `userInfo` object is omitted from each play.
+      security:
+        - bearerAuth: []
+      tags:
+        - Analytics
+      responses:
+        '200':
+          description: |
+            Bulk list of plays for the requested series or puzzle.
+            Each play includes common fields and a `playProgress` object containing
+            puzzle type specific statistics and progress information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsPlaysResponse'
+              examples:
+                series_plays:
+                  summary: All plays in a series
+                  description: |
+                    Example response showing plays across multiple puzzles and users in a series.
+                  value:
+                    status: 0
+                    plays:
+                      - userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                        puzzleId: "123ba400"
+                        series: "pm"
+                        puzzleType: "crossword"
+                        startedAt: "2026-01-06T10:21:13Z"
+                        updatedAt: "2026-01-06T10:31:00Z"
+                        playProgress:
+                          totalBoxes: 100
+                          filledBoxes: 75
+                          playState: "inProgress"
+                        score: 75
+                        screenTimeSeconds: 308
+                      - userId: "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e"
+                        puzzleId: "46892ef6"
+                        series: "pm"
+                        puzzleType: "quiz"
+                        startedAt: "2026-01-01T06:39:41Z"
+                        updatedAt: "2026-01-02T08:22:00Z"
+                        playProgress:
+                          attemptedQuestions: 8
+                          playState: "completed"
+                        score: 85
+                        screenTimeSeconds: 24
+                    hasMore: false
+                puzzle_plays_with_user_info:
+                  summary: All plays for one puzzle, with user info
+                  description: |
+                    Example response with `getUserInfo=true`. Each play carries a `userInfo` map
+                    of the lead-generation fields collected for that user.
+                  value:
+                    status: 0
+                    plays:
+                      - userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                        puzzleId: "123ba400"
+                        series: "pm"
+                        puzzleType: "crossword"
+                        startedAt: "2026-01-06T10:21:13Z"
+                        updatedAt: "2026-01-06T10:31:00Z"
+                        playProgress:
+                          totalBoxes: 100
+                          filledBoxes: 100
+                          playState: "completed"
+                        score: 100
+                        screenTimeSeconds: 412
+                        userInfo:
+                          field_1: "Jane Doe"
+                          field_2: "jane@example.com"
+                    hasMore: false
+        '400':
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `series` is missing.
+              - `from` or `to` is provided but not in ISO 8601 format. (Each is independently optional; supplying only one is allowed and the other defaults.)
+              - Both `from` and `to` are provided and `from` is later than `to`.
+              - `puzzleId` is malformed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_required_parameter:
+                  summary: Missing required parameter
+                  description: Returned when `series` is missing.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for series"
                     errorDetails:
                       paramName: "series"
         '401':
-          description: Unauthorized (invalid or missing API token)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                expired_token:
-                  summary: Expired token
-                  description: Error response when the API token has expired
-                  value:
-                    status: 1
-                    errorCode: 6
-                    errorMessage: "Token expired"
-                    errorDetails:
-                      type: "EXPIRED_TOKEN"
-                invalid_token:
-                  summary: Invalid token
-                  description: Error response when the API token is invalid
-                  value:
-                    status: 1
-                    errorCode: 5
-                    errorMessage: "Invalid token"
-                    errorDetails:
-                      type: "INVALID_TOKEN"
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Forbidden (no access to series)
+          description: |
+            Forbidden. Returned when the caller does not have access to the requested series, or when
+            the caller attempts a user-scoped lookup by passing `userId` (not supported on this endpoint;
+            use `/api/v2/plays` for per-user history). Possible `errorCode` values for this endpoint:
+            - `NO_ACCESS_TO_SET` (84) — caller has no access to the requested series, or attempted a user-scoped scenario which is not open to API token callers on this endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v2/user-fields:
+    get:
+      summary: Get user fields
+      description: |
+        Retrieves lead generation field data submitted by a given user for a puzzle within a given series.
+        Fields are returned as key-value pairs in a `fields` object using keys `field_1`, `field_2`, and `field_3`.
+
+        **What are user fields?**
+        User fields correspond to the lead generation fields configured in the
+        [series settings](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+        When lead generation is enabled for a series, up to 3 custom fields of information can be
+        collected from players — such as name, email address, or phone number. These fields are
+        configured with labels and input types (text, numbers, or email) in the series settings,
+        and are represented in the API as `field_1`, `field_2`, and `field_3`.
+
+        **Fields:**
+        Fields use keys `field_1`, `field_2`, and `field_3`. The label and validation type for each
+        field are defined in the series settings under
+        [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+        For example, a series might configure `field_1` as "Participant Name" (text),
+        `field_2` as "Email Address" (email format), and `field_3` as "Phone Number" (numbers only).
+
+        **Response:**
+        Only fields that have been set are returned. Fields that have not been set for the user
+        are omitted from the response. The response always returns HTTP 200 with `status: 0` —
+        an empty `fields` object indicates no data has been collected for this user.
+
+        **Examples:**
+
+        **Get user fields for a given puzzle:**
+        ```bash
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/user-fields?series=api-demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=api-demo-crossword_2026_01_15' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier that scopes the user fields.
+            Example: "demo-crossword", "quiz-series"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Unique user identifier.
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        - name: puzzleId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Puzzle identifier to retrieve fields for a given puzzle.
+            Example: "api-demo-crossword_2026_01_15"
+      responses:
+        '200':
+          description: |
+            User fields retrieved successfully. Only fields that have been set are returned;
+            fields without values are omitted from the response.
+            An empty `fields` object means no data has been collected for this user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserFieldsGetResponse'
+              examples:
+                with_fields:
+                  summary: User with fields set
+                  description: |
+                    Response when the user has submitted lead generation fields for this puzzle.
+                    Only fields that have been set are included; unset fields are omitted.
+                  value:
+                    status: 0
+                    userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                    series: "demo-crossword"
+                    fields:
+                      field_1: "Jane Doe"
+                      field_2: "jane@example.com"
+                no_fields:
+                  summary: User with no fields set
+                  description: |
+                    Response when no lead generation data has been collected for this user and puzzle.
+                    The `fields` object is empty but the request succeeds with status 0.
+                  value:
+                    status: 0
+                    userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                    series: "demo-crossword"
+                    fields: {}
+        '400':
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — `series`, `userId`, or `puzzleId` is missing.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
-                no_access_to_series:
-                  summary: No access to series
-                  description: Error response when user doesn't have access to the requested series
+                missing_series:
+                  summary: Missing series parameter
                   value:
                     status: 1
-                    errorCode: 8
-                    errorMessage: "No access to series"
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for series"
                     errorDetails:
-                      series: "pm"
-                      type: "UNAUTHORIZED_ACCESS_TO_SET"
+                      paramName: "series"
+                missing_user_id:
+                  summary: Missing userId parameter
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for userId"
+                    errorDetails:
+                      paramName: "userId"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+      tags:
+        - User Fields
+    post:
+      summary: Set user fields
+      description: |
+        Sets lead generation field data for a given user, a puzzle, and a given series.
+        If a field already exists for this user and puzzle, its value is overwritten.
+
+        **What are user fields?**
+        User fields correspond to the lead generation fields configured in the
+        [series settings](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+        When lead generation is enabled for a series, up to 3 custom fields of information can be
+        collected from players — such as name, email address, or phone number. These fields are
+        configured with labels and input types (text, numbers, or email) in the series settings,
+        and are represented in the API as `field_1`, `field_2`, and `field_3`.
+
+        **Fields:**
+        Fields use keys `field_1`, `field_2`, and `field_3`. The label and validation type for each
+        field are defined in the series settings under
+        [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+        For example, a series might configure `field_1` as "Participant Name" (text),
+        `field_2` as "Email Address" (email format), and `field_3` as "Phone Number" (numbers only).
+
+        **Request Body:**
+        The `fields` object contains only the fields to set. Fields not included in the request
+        are left untouched.
+
+        **Response:**
+        A success response with `status: 0`. The response does not echo back the saved fields.
+
+        **Examples:**
+
+        **Set user fields for a puzzle:**
+        ```bash
+        curl -X POST 'https://sandbox.amuselabs.com/pmm/api/v2/user-fields?series=api-demo-crossword&userId=9f7439e7-ecf1-4c03-ba90-91273f149231&puzzleId=api-demo-crossword_2026_01_15' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Content-Type: application/json' \
+        -d '{"fields": {"field_1": "Jane Doe", "field_2": "jane@example.com"}}'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier that scopes the user fields.
+            Example: "demo-crossword"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Unique user identifier.
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        - name: puzzleId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Puzzle identifier to scope the fields to a given puzzle.
+            Example: "api-demo-crossword_2026_01_15"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserFieldsRequest'
+            examples:
+              set_two_fields:
+                summary: Set name and email
+                value:
+                  fields:
+                    field_1: "Jane Doe"
+                    field_2: "jane@example.com"
+              set_all_fields:
+                summary: Set all three fields
+                value:
+                  fields:
+                    field_1: "Jane Doe"
+                    field_2: "jane@example.com"
+                    field_3: "+14155550100"
+      responses:
+        '200':
+          description: Fields set successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserFieldsPostResponse'
+              examples:
+                success:
+                  summary: Fields set successfully
+                  value:
+                    status: 0
+        '400':
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `series`, `userId`, or `puzzleId` is missing.
+              - Request body contains a field key outside the allowed set (`field_1`, `field_2`, `field_3`).
+              - A field value fails the validation rule configured for that field in the series (e.g. email format, numeric format).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_field_name:
+                  summary: Unknown field name
+                  description: |
+                    Returned when the request body contains a field name not in the allowed set (`field_1`, `field_2`, `field_3`).
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for fields"
+                    errorDetails:
+                      paramName: "fields"
+                      contextMessage: "Unknown field key: field_99"
+                validation_failure:
+                  summary: Field value fails validation
+                  description: |
+                    Returned when a field value does not satisfy the series-specific validation rule.
+                    For example, `field_2` (email) must match the email format configured for this series.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for field_2"
+                    errorDetails:
+                      paramName: "field_2"
+                      contextMessage: "Value does not match required format for this series."
+                missing_series:
+                  summary: Missing required parameter
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for series"
+                    errorDetails:
+                      paramName: "series"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - bearerAuth: []
+      tags:
+        - User Fields
+  /api/v2/user-stats:
+    get:
+      summary: Get series specific user stats
+      description: |
+        Fetches aggregated stats for a user given a series — how many puzzles they have started,
+        how many they have completed, and how consistently they have played (streaks).
+
+        **Streak Definition:**
+        A streak counts how many consecutive published puzzles a user has started or completed without
+        missing one. Streaks follow the publication order of puzzles in the series:
+
+        - **Started streak:** A puzzle contributes to the started streak when the user has at least one
+          play record for it. The streak increments with each successive published puzzle the user starts.
+          The streak breaks as soon as there is a published puzzle the user has not started yet.
+        - **Completed streak:** A puzzle contributes to the completed streak when the user solves it
+          before the next puzzle in the series is published. The streak increments with each successive
+          puzzle the user completes on time. The streak breaks when a puzzle is published and the
+          preceding puzzle had not been completed before that publication date.
+
+        `currentStreak` reflects the active, unbroken streak counted from the most recent puzzle in
+        the series back to the first missed puzzle. `longestStreak` is the highest streak the user
+        has ever achieved for this series.
+
+        **Examples:**
+
+        **Get user stats for a series:**
+        ```bash
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/user-stats?series=demo-api&userId=9f7439e7-ecf1-4c03-ba90-91273f149231' \
+        -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+        -H 'Accept: application/json'
+        ```
+      parameters:
+        - name: series
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            Series identifier for the puzzle collection.
+            Example: "api-demo-crossword", "demo-api"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: |
+            User ID to fetch stats for.
+            Example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+      responses:
+        '200':
+          description: Successful response with user stats object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserStatsResponse'
+              examples:
+                user_stats:
+                  summary: User stats for a series
+                  description: |
+                    Aggregated started and completed stats for a user.
+                    In this example, the user has started 42 puzzles with a current started streak of 5 and
+                    a longest started streak of 12. They have completed 38 puzzles with a current completed
+                    streak of 4 and a longest completed streak of 10.
+                    `totalSolveTime` and `fastestSolveTime` may be `null` when not applicable.
+                  value:
+                    status: 0
+                    userStats:
+                      userId: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+                      series: "demo-api"
+                      stats:
+                        started:
+                          count: 42
+                          currentStreak: 5
+                          longestStreak: 12
+                        completed:
+                          count: 38
+                          currentStreak: 4
+                          longestStreak: 10
+                          totalSolveTime: 86400
+                          fastestSolveTime: 120
+        '400':
+          description: |
+            Bad request. Possible `errorCode` values for this endpoint:
+            - `INVALID_PARAMETER` (116) — generic input validation; conditions include:
+              - `userId` is missing.
+              - `series` is missing.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_user_id:
+                  summary: Missing userId
+                  description: Returned when `userId` is missing.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for userId"
+                    errorDetails:
+                      paramName: "userId"
+                missing_series:
+                  summary: Missing series
+                  description: Returned when `series` is missing.
+                  value:
+                    status: 1
+                    errorCode: 116
+                    errorMessage: "Invalid parameter value for series"
+                    errorDetails:
+                      paramName: "series"
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: |
+            Caller is authenticated but not allowed to access the requested resource. Possible `errorCode` values for this endpoint:
+            - `NO_ACCESS_TO_SET` (84) — caller has no access to the requested series.
+            - `DISALLOWED_OPERATION` (88) — the user-stats API is not enabled for the requested series.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      security:
+        - bearerAuth: []
+      tags:
+        - User Stats
 components:
   securitySchemes:
     bearerAuth:
@@ -1099,9 +1813,91 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: |
-        Enter the JWT token obtained from the `/api/v1/token` endpoint.
+        Enter the JWT token obtained from the `/api/v2/token` endpoint.
         **Note:** You do not need to prefix the token with "Bearer ".
+  responses:
+    Unauthenticated:
+      description: |
+        Caller is not authenticated.
+        Possible `errorCode` values:
+        - `UNAUTHENTICATED_ACCESS` (108) — no `Authorization` header presented.
+        - `EXPIRED_TOKEN` (98) — bearer token expired.
+        - `INVALID_TOKEN` (99) — bearer token malformed or signature invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: |
+        Caller is authenticated but not allowed to perform this operation.
+        Possible `errorCode` values:
+        - `NO_ACCESS_TO_SET` (84)
+        - `NO_WRITE_ACCESS_TO_SET` (85)
+        - `CONTENT_SET_NOT_WRITABLE` (87)
+        - `PERMISSION_DENIED` (114)
+        - `ACCOUNT_EXPIRED` (95)
+        - `INACTIVE_USER` (137)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: |
+        The requested resource does not exist. Possible `errorCode` values depend on the endpoint (e.g. `PUZZLE_NOT_FOUND`, `SERIES_NOT_FOUND`, `NO_LOAD_FOUND`, `ACCOUNT_NOT_FOUND`, `PLAY_NOT_FOUND`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: |
+        An internal server error occurred while processing the request.
+        Possible `errorCode` values include `IO_FAILURE` (128) and other internal failures.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadGateway:
+      description: |
+        An upstream service (Auth0, Stripe, translation service) returned an error or was unreachable.
+        Possible `errorCode` values include `TRANSLATION_SERVICE_FAILURE` (215).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: |
+        The service is temporarily unavailable, typically due to scheduled database maintenance.
+        Possible `errorCode` value: `DB_DISABLED` (130).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
+    ErrorResponse:
+      type: object
+      description: Error response body.
+      required:
+        - status
+        - errorCode
+        - errorMessage
+      properties:
+        status:
+          type: integer
+          enum: [1]
+          description: Always `1` for error responses (`0` for success).
+          example: 1
+        errorCode:
+          type: integer
+          description: Numeric identifier for the specific error condition.
+          example: 116
+        errorMessage:
+          type: string
+          description: Human-readable error message.
+          example: "Invalid parameter value for userId"
+        errorDetails:
+          type: object
+          nullable: true
+          description: Optional additional context about the error.
     GetPlaysResponse:
       type: object
       description: Response containing list of plays with puzzle type specific state details
@@ -1118,9 +1914,28 @@ components:
         hasMore:
           type: boolean
           description: Indicates if there are more plays available (pagination)
-    PlayResponse:
+    AnalyticsPlaysResponse:
       type: object
-      description: Individual play data with puzzle type specific progress information
+      description: |
+        Response for `/api/v2/analytics/plays`. Same shape as `GetPlaysResponse` but each
+        play may include an optional `userInfo` map (when `getUserInfo=true` is requested and
+        the account is configured to collect user information).
+      properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
+        plays:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnalyticsPlayResponse'
+          description: List of plays with puzzle type specific state details and optional user info
+        hasMore:
+          type: boolean
+          description: Indicates if there are more plays available (pagination)
+    AnalyticsPlayResponse:
+      type: object
+      description: Individual play data with puzzle type specific progress information, plus optional user info.
       properties:
         userId:
           type: string
@@ -1129,7 +1944,7 @@ components:
         puzzleId:
           type: string
           description: Puzzle identifier
-          example: "daily-2024-01-15"
+          example: "api-demo-crossword_2026_01_15"
         series:
           type: string
           description: Series name
@@ -1143,12 +1958,95 @@ components:
           type: string
           format: date-time
           description: Play start time in ISO 8601 UTC format
-          example: "2024-01-15T10:30:00Z"
+          example: "2026-01-15T10:30:00Z"
         updatedAt:
           type: string
           format: date-time
           description: Time when the play was last updated, in ISO 8601 UTC format.
-          example: "2024-01-15T11:15:00Z"
+          example: "2026-01-15T11:15:00Z"
+        playProgress:
+          oneOf:
+            - $ref: '#/components/schemas/GridGamePlayProgress'
+            - $ref: '#/components/schemas/QuizPlayProgress'
+            - $ref: '#/components/schemas/WordSearchPlayProgress'
+            - $ref: '#/components/schemas/JigsawPlayProgress'
+          description: Puzzle type specific play state details and progress information
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Backend computed score for the play
+          example: 85
+        screenTimeSeconds:
+          type: integer
+          minimum: 0
+          description: Screen time spent on puzzle in seconds on the frontend
+          example: 2700
+        userInfo:
+          type: object
+          description: |
+            User-information fields collected for this user. Keys are from the allowed set: `field_1`, `field_2`, `field_3`.
+            The label and validation type for each field are configured in the series settings under
+            [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+            Only fields that have been set for the user are included; unset fields are omitted.
+            The whole `userInfo` object is present only when `getUserInfo=true` is requested and the account is configured to collect user information;
+            otherwise this field is omitted from the play.
+          properties:
+            field_1:
+              type: string
+              description: First lead generation field.
+              example: "Jane Doe"
+            field_2:
+              type: string
+              description: Second lead generation field.
+              example: "jane@example.com"
+            field_3:
+              type: string
+              description: Third lead generation field.
+              example: "+14155550100"
+          additionalProperties: false
+    GetUserStatsResponse:
+      type: object
+      description: Response containing aggregated user statistics for a user in a series
+      properties:
+        status:
+          type: integer
+          description: Response status code (0 for success)
+          example: 0
+        userStats:
+          $ref: '#/components/schemas/UserStatsResponse'
+          description: Aggregated stats for the requested user and series
+    PlayResponse:
+      type: object
+      description: Individual play data with puzzle type specific progress information
+      properties:
+        userId:
+          type: string
+          description: Unique user identifier
+          example: "user123"
+        puzzleId:
+          type: string
+          description: Puzzle identifier
+          example: "api-demo-crossword_2026_01_15"
+        series:
+          type: string
+          description: Series name
+          example: "demo-api"
+        puzzleType:
+          type: string
+          enum: [crossword, codeword, krisskross, sudoku, quiz, wordsearch, wordflower, jigsaw]
+          description: Puzzle type
+          example: "crossword"
+        startedAt:
+          type: string
+          format: date-time
+          description: Play start time in ISO 8601 UTC format
+          example: "2026-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Time when the play was last updated, in ISO 8601 UTC format.
+          example: "2026-01-15T11:15:00Z"
         playProgress:
           oneOf:
             - $ref: '#/components/schemas/GridGamePlayProgress'
@@ -1230,29 +2128,83 @@ components:
           minimum: 0
           description: Number of pieces remaining to be placed
           example: 25
-    ErrorResponse:
+    UserStatsResponse:
       type: object
-      description: Standard error response format for API errors
+      description: Aggregated user statistics for a single series
       properties:
-        status:
-          type: integer
-          description: Error status code (1 for errors)
-          example: 1
-        errorCode:
-          type: integer
-          description: Specific error code for different error types
-          example: 6
-        errorMessage:
+        userId:
           type: string
-          description: Human-readable error message
-          example: "Token expired"
-        errorDetails:
-          type: object
-          description: Additional error details specific to the error type
-          additionalProperties: true
-          example:
-            type: "EXPIRED_TOKEN"
-            paramName: "series"
+          description: User identifier
+          example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        series:
+          type: string
+          description: Series identifier
+          example: "demo-api"
+        stats:
+          $ref: '#/components/schemas/UserStatsAggregates'
+    UserStatsAggregates:
+      type: object
+      description: |
+        Started and completed aggregates for a user in a series.
+        `started` counts and streaks are based on any play activity for each puzzle.
+        `completed` counts and streaks are based on solving each puzzle before the next one is published.
+      properties:
+        started:
+          $ref: '#/components/schemas/UserStatsStarted'
+        completed:
+          $ref: '#/components/schemas/UserStatsCompleted'
+    UserStatsStarted:
+      type: object
+      description: Stats for puzzles the user has started in the series
+      properties:
+        count:
+          type: integer
+          description: Total number of puzzles the user has started
+          example: 42
+        currentStreak:
+          type: integer
+          description: |
+            Number of consecutive published puzzles (in reverse publication order from the most recent)
+            that the user has started without a gap. The streak ends at the first published puzzle the
+            user has not yet started.
+          example: 5
+        longestStreak:
+          type: integer
+          description: |
+            The highest started streak the user has ever achieved in this series.
+          example: 12
+    UserStatsCompleted:
+      type: object
+      description: Stats for puzzles the user has completed in the series
+      properties:
+        count:
+          type: integer
+          description: Total number of puzzles the user has completed
+          example: 38
+        currentStreak:
+          type: integer
+          description: |
+            Number of consecutive published puzzles (in reverse publication order from the most recent)
+            that the user completed before the next puzzle was published, without a gap. The streak ends
+            at the first puzzle the user did not complete before the subsequent puzzle went live.
+          example: 4
+        longestStreak:
+          type: integer
+          description: |
+            The highest completed streak the user has ever achieved in this series.
+          example: 10
+        totalSolveTime:
+          type: integer
+          nullable: true
+          description: |
+            Sum of solve times (in seconds) across all completed puzzles.
+          example: 86400
+        fastestSolveTime:
+          type: integer
+          nullable: true
+          description: |
+            Fastest single solve time (in seconds) across all completed puzzles.
+          example: 120
     PlaysResponseAPI:
       type: object
       properties:
@@ -1305,7 +2257,7 @@ components:
                 - $ref: '#/components/schemas/BaseFormattedPuzzleMetadata'
           example:
             api-demo-crossword:
-              - title: "Daily Crossword"
+              - title: "API Demo Crossword"
                 author: "Jane Smith"
                 puzzleId: "82e56966"
                 puzzleType: "CROSSWORD"
@@ -1325,7 +2277,7 @@ components:
         title:
           type: string
           description: Puzzle title
-          example: "Daily Crossword"
+          example: "API Demo Crossword"
         author:
           type: string
           description: Puzzle author/constructor name
@@ -1831,6 +2783,87 @@ components:
         - NAVBAR_AND_END
         - NEVER
       description: Where to show the score for a given puzzle type.
+    UserFieldsRequest:
+      type: object
+      description: |
+        Request body for setting user fields.
+        Only the fields to be set should be included. Fields not included in the request are left unchanged.
+      required:
+        - fields
+      properties:
+        fields:
+          type: object
+          description: |
+            Key-value pairs of user fields to set. Keys must be from the allowed set: `field_1`, `field_2`, and `field_3`.
+            Values are strings. Only fields to be set should be included.
+            The label and validation type for each field are configured in the series settings under
+            [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+          properties:
+            field_1:
+              type: string
+              nullable: true
+              description: "First lead generation field. Validated against the input type configured in series settings."
+              example: "Jane Doe"
+            field_2:
+              type: string
+              nullable: true
+              description: "Second lead generation field. Validated against the input type configured in series settings."
+              example: "jane@example.com"
+            field_3:
+              type: string
+              nullable: true
+              description: "Third lead generation field. Validated against the input type configured in series settings."
+              example: "+14155550100"
+          additionalProperties: false
+    UserFieldsGetResponse:
+      type: object
+      description: |
+        Response containing user fields for the requested user, series, and puzzle.
+        Only fields that have been set are returned. Fields that have not been set are omitted
+        from the response (they are not returned as `null` or empty strings).
+      properties:
+        status:
+          type: integer
+          description: "Response status code. 0 indicates success."
+          example: 0
+        userId:
+          type: string
+          description: "Echoed user identifier from the request."
+          example: "9f7439e7-ecf1-4c03-ba90-91273f149231"
+        series:
+          type: string
+          description: "Echoed series identifier from the request."
+          example: "demo-crossword"
+        fields:
+          type: object
+          description: |
+            Key-value pairs of user fields that have been set. Only fields with values are included;
+            unset fields are omitted. An empty object means no lead generation data has been
+            collected for this user and puzzle. The label and validation type for each field are
+            configured in the series settings under
+            [Lead Generation](https://amuselabs.com/docs/managing-puzzles/settings/#lead-generation).
+          properties:
+            field_1:
+              type: string
+              example: "Jane Doe"
+            field_2:
+              type: string
+              example: "jane@example.com"
+            field_3:
+              type: string
+              example: "+14155550100"
+          additionalProperties: false
+    
+    UserFieldsPostResponse:
+      type: object
+      description: |
+        Response for a successful set operation. Contains only the status code.
+        The saved fields are not echoed back. Use GET to retrieve the current state if needed.
+      properties:
+        status:
+          type: integer
+          description: "Response status code. 0 indicates success."
+          example: 0
 x-tagGroups:
   - name: Auth
     tags:
@@ -1847,3 +2880,9 @@ x-tagGroups:
   - name: Analytics
     tags:
       - Analytics
+  - name: User Fields
+    tags:
+      - User Fields
+  - name: User Stats
+    tags:
+      - User Stats

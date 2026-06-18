@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "start": "docusaurus start",
+    "gen-api-docs": "docusaurus clean-api-docs all && docusaurus gen-api-docs all && node scripts/add-info-slug.js",
+    "start": "npm run gen-api-docs && docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",

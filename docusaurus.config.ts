@@ -65,7 +65,7 @@ const config: Config = {
     // Replace with your project's social card
     image: 'img/puzzleme-logo.svg',
     navbar: {
-      title: 'PuzzleMe API',
+      title: 'API',
       logo: {
         alt: 'PuzzleMe API Logo',
         src: 'img/puzzleme-logo.svg',
@@ -107,6 +107,49 @@ const config: Config = {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
     },
+    languageTabs: [
+      {
+        tabName: "JavaScript",
+        highlight: "javascript",
+        language: "javascript",
+        variant: "fetch",
+      },
+      {
+        tabName: "cURL",
+        highlight: "bash",
+        language: "curl",
+        variant: "curl",
+        options: {
+          longFormat: false,
+          followRedirect: true,
+          trimRequestBody: true,
+        },
+      },
+      {
+        tabName: "Python",
+        highlight: "python",
+        language: "python",
+        variant: "requests",
+      },
+      {
+        tabName: "Go",
+        highlight: "go",
+        language: "go",
+        variant: "native",
+      },
+      {
+        tabName: "C#",
+        highlight: "csharp",
+        language: "csharp",
+        variant: "httpclient",
+      },
+      {
+        tabName: "Ruby",
+        highlight: "ruby",
+        language: "ruby",
+        variant: "Net::HTTP",
+      },
+    ],
   } satisfies Preset.ThemeConfig,
   plugins: [
     [
