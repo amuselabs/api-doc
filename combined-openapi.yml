@@ -296,7 +296,7 @@ paths:
 
         **Get Specific Series With Settings:**
         ```bash
-        curl -L 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword&includeSettings=true' \
+        curl -L 'https://sandbox.amuselabs.com/pmm/api/v2/series?series=api-demo-crossword&includeSettings=true' \
         -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
         -H 'Accept: application/json'
         ```
@@ -450,7 +450,7 @@ paths:
         **Supported body fields:**
         - `displayName` *(string)* — update the series display name.
         - `settings` *(object)* — hierarchical player+picker settings (same schema as returned by
-          `GET /api/v1/series?includeSettings=true`). Only the paths you send are merged onto the
+          `GET /api/v2/series?includeSettings=true`). Only the paths you send are merged onto the
           existing settings — absent paths are untouched. Unknown API paths cause a `400` error.
 
         **Settings merge semantics:**
@@ -461,7 +461,7 @@ paths:
 
         **Rename a series:**
         ```bash
-        curl -L -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
+        curl -L -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v2/series?series=api-demo-crossword' \
           -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
           -H 'Content-Type: application/json' \
           -d '{"displayName": "API Demo (Updated)"}'
@@ -469,7 +469,7 @@ paths:
 
         **Update specific settings:**
         ```bash
-        curl -L -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
+        curl -L -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v2/series?series=api-demo-crossword' \
           -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
           -H 'Content-Type: application/json' \
           -d '{
@@ -482,7 +482,7 @@ paths:
 
         **Rename and update settings in one call:**
         ```bash
-        curl -L -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v1/series?series=api-demo-crossword' \
+        curl -L -X PATCH 'https://sandbox.amuselabs.com/pmm/api/v2/series?series=api-demo-crossword' \
           -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
           -H 'Content-Type: application/json' \
           -d '{
@@ -535,7 +535,7 @@ paths:
           description: |
             Successful update. The response is intentionally empty beyond the base status envelope —
             PATCH is a pure write. Callers that need the post-update state should follow up with
-            `GET /api/v1/series?series=X&includeSettings=true`.
+            `GET /api/v2/series?series=X&includeSettings=true`.
           content:
             application/json:
               schema:
@@ -614,17 +614,17 @@ paths:
         - `settings` *(object, optional)* — series settings to apply immediately after creation. See
           the [series settings documentation](https://amuselabs.com/docs/managing-puzzles/settings/)
           for what each setting does; the shape is the same as the one returned by
-          `GET /api/v1/series?includeSettings=true` and accepted by `PATCH /api/v1/series`. If
+          `GET /api/v2/series?includeSettings=true` and accepted by `PATCH /api/v2/series`. If
           omitted, the new series is created with default settings.
 
         **Unknown settings paths** (e.g., a typo under `settings.scoring.*`) cause a 400 error — same
-        strict path validation as `PATCH /api/v1/series`.
+        strict path validation as `PATCH /api/v2/series`.
 
         **Examples:**
 
         **Create with defaults:**
         ```bash
-        curl -L -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/series' \
+        curl -L -X POST 'https://sandbox.amuselabs.com/pmm/api/v2/series' \
           -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
           -H 'Content-Type: application/json' \
           -d '{
@@ -635,7 +635,7 @@ paths:
 
         **Create with initial settings:**
         ```bash
-        curl -L -X POST 'https://sandbox.amuselabs.com/pmm/api/v1/series' \
+        curl -L -X POST 'https://sandbox.amuselabs.com/pmm/api/v2/series' \
           -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
           -H 'Content-Type: application/json' \
           -d '{
@@ -687,7 +687,7 @@ paths:
             subsequent `GET` / `PATCH` / `DELETE` calls.
 
             For the post-create series settings, follow up with
-            `GET /api/v1/series?series=<returned-series>&includeSettings=true`.
+            `GET /api/v2/series?series=<returned-series>&includeSettings=true`.
           content:
             application/json:
               schema:
@@ -2413,13 +2413,13 @@ components:
           $ref: '#/components/schemas/PlayerSettings'
           description: |
             Hierarchical player+picker settings for this series. Only present when the caller passed
-            `includeSettings=true` on `GET /api/v1/series` for a specific series. Omitted in list
+            `includeSettings=true` on `GET /api/v2/series` for a specific series. Omitted in list
             mode and when `includeSettings` is false or not provided.
 
     SeriesPatchRequest:
       type: object
       description: |
-        Request body for `PATCH /api/v1/series`. At least one of `displayName` or `settings` must be
+        Request body for `PATCH /api/v2/series`. At least one of `displayName` or `settings` must be
         present; unknown top-level keys cause a 400 error.
       properties:
         displayName:
@@ -2433,9 +2433,9 @@ components:
     SeriesPatchResponse:
       type: object
       description: |
-        Response from `PATCH /api/v1/series`. Intentionally minimal — PATCH is a pure write. The
+        Response from `PATCH /api/v2/series`. Intentionally minimal — PATCH is a pure write. The
         only field guaranteed in the body is the base `status` envelope. Callers that need the
-        post-update state should follow up with `GET /api/v1/series?series=X&includeSettings=true`.
+        post-update state should follow up with `GET /api/v2/series?series=X&includeSettings=true`.
       properties:
         status:
           type: integer
@@ -2445,7 +2445,7 @@ components:
     SeriesPostRequest:
       type: object
       description: |
-        Request body for `POST /api/v1/series` — creates a new series, optionally with an initial
+        Request body for `POST /api/v2/series` — creates a new series, optionally with an initial
         set of series settings. Send as `Content-Type: application/json`.
       required:
         - series
@@ -2484,15 +2484,15 @@ components:
             series starts with default settings. See the
             [series settings documentation](https://amuselabs.com/docs/managing-puzzles/settings/)
             for what each setting does; this is the same shape returned by
-            `GET /api/v1/series?includeSettings=true` and accepted by `PATCH /api/v1/series`.
+            `GET /api/v2/series?includeSettings=true` and accepted by `PATCH /api/v2/series`.
             Unknown paths return a 400 error.
 
     SeriesPostResponse:
       type: object
       description: |
-        Response from `POST /api/v1/series`. Returns the base `status` envelope plus the final
+        Response from `POST /api/v2/series`. Returns the base `status` envelope plus the final
         `series` identifier. Settings and other derived state are not included — callers that need
-        the post-create settings follow up with `GET /api/v1/series?series=X&includeSettings=true`.
+        the post-create settings follow up with `GET /api/v2/series?series=X&includeSettings=true`.
       required:
         - status
         - series
