@@ -1,0 +1,37 @@
+# PuzzleMe API
+
+> The PuzzleMe API offers secure, efficient programmatic access to puzzles created on the PuzzleMe platform and their analytics. Designed for partners and developers, this API enables seamless integration of puzzle content and analytics dashboards into your applications and platforms.
+
+## Introduction
+
+- [PuzzleMe API](https://amuselabs.github.io/api-doc/): The PuzzleMe API offers secure, efficient programmatic access to puzzles created on the PuzzleMe platform and their analytics. Designed for partners and developers, this API enables seamless integration of puzzle content and analytics dashboards into your applications and platforms.
+
+## Auth
+
+- [Generate API token](https://amuselabs.github.io/api-doc/generate-api-token): Returns a JWT token for API access. Requires client_id and client_secret in the request body.
+
+## Puzzles
+
+- [Retrieve puzzle metadata](https://amuselabs.github.io/api-doc/retrieve-puzzle-metadata): Retrieves puzzle metadata based on specific criteria. Supports two mutually exclusive request types:
+
+## Plays
+
+- [Get plays for a given user](https://amuselabs.github.io/api-doc/get-plays-for-a-given-user): Retrieves detailed play-by-play analytics data for puzzles in a series or specific puzzle IDs for a given user. Each play includes common fields (userId, startTime, endTime, etc.) along with puzzle type specific
+
+## Series
+
+- [Retrieve series information](https://amuselabs.github.io/api-doc/retrieve-series-information): Retrieves series metadata for the authenticated account. The endpoint supports three operation modes:
+
+## Analytics
+
+- [Get series or puzzle specific aggregate metrics](https://amuselabs.github.io/api-doc/get-series-or-puzzle-specific-aggregate-metrics): Fetches aggregated analytics data over a specified time range, grouped by one or more dimensions. The reporting system is designed around two types of data: **loads** (when a puzzle is loaded) and **plays** (when a user interacts with a puzzle). You must choose dimensions and metrics that belong to the same category.
+- [Get bulk plays for a series or puzzle](https://amuselabs.github.io/api-doc/get-bulk-plays-for-a-series-or-puzzle): Retrieves play-by-play data in bulk across all users for a series or for a specific puzzle. Intended for high-throughput bulk pulls (data exports, downstream analytics pipelines, dashboards).
+
+## User Fields
+
+- [Get user fields](https://amuselabs.github.io/api-doc/get-user-fields): Retrieves lead generation field data submitted by a given user for a puzzle within a given series. Fields are returned as key-value pairs in a `fields` object using keys `field_1`, `field_2`, and `field_3`.
+- [Set user fields](https://amuselabs.github.io/api-doc/set-user-fields): Sets lead generation field data for a given user, a puzzle, and a given series. If a field already exists for this user and puzzle, its value is overwritten.
+
+## User Stats
+
+- [Get series specific user stats](https://amuselabs.github.io/api-doc/get-series-specific-user-stats): Fetches aggregated stats for a user given a series — how many puzzles they have started, how many they have completed, and how consistently they have played (streaks).

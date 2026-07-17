@@ -17,6 +17,13 @@ yarn docusaurus gen-api-docs all
 ```
 in `docusaurus.config.js` we have configured the `docs` as output directory in api-docs plugin and the path to the openapi spec yml file. If the spec changes then `combined-openapi.yml` file is updated and the above command is run to generate the files in the docs folder again. 
 
+## `llms.txt` (scraper/crawler index)
+
+Every doc generation run also emits `static/llms.txt` — a plaintext index following the [llmstxt.org](https://llmstxt.org) convention. It lists every endpoint page grouped by tag, with the title and a short description (first paragraph, capped at 2 lines) pulled from `combined-openapi.yml`. After `yarn build`, it's served at [amuselabs.github.io/api-doc/llms.txt](https://amuselabs.github.io/api-doc/llms.txt) and gives LLM/site scrapers the full page surface in one fetch.
+
+- Generator: `scripts/generate-llms-txt.js`, wired into the `gen-api-docs` npm script — no separate command to remember. Add an operation to the spec, rerun `yarn gen-api-docs` (or `yarn start`), and the new entry appears automatically.
+- Slugs and description text are sourced through `docusaurus-plugin-openapi-docs`' own OpenAPI processing, so URLs in `llms.txt` stay in lock-step with the generated `.mdx` filenames.
+
 ## Local Development
 
 ```bash
