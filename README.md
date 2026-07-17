@@ -49,8 +49,9 @@ This command generates static content into the `build` directory and can be serv
 2. npm run docusaurus gen-api-docs all
 3. git checkout docs/_intro.md
 4. git add docs
-5. git commit -m "message"
-6. git push
+5. git add static/llms.txt
+6. git commit -m "message"
+7. git push
 
 ### GitHub Pages 
 
