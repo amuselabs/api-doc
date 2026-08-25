@@ -70,6 +70,12 @@ const sidebar: SidebarsConfig = {
           label: "Get bulk plays for a series or puzzle",
           className: "api-method get",
         },
+        {
+          type: "doc",
+          id: "get-the-leaderboard-for-a-puzzle",
+          label: "Get the leaderboard for a puzzle",
+          className: "api-method get",
+        },
       ],
     },
     {
